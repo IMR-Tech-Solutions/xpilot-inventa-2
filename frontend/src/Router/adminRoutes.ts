@@ -7,4 +7,5 @@ export const admin_routes = {
   allcategories: "/admin/categories",
   allproducts: "/admin/products",
   allusersdata: "/admin/all-users-data",
+  allstockmanagement: "/admin/stock-management",
 };

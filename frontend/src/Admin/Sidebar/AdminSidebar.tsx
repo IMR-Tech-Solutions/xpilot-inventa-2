@@ -41,6 +41,12 @@ const navItems: NavItem[] = [
     path: admin_routes.allproducts,
     module: admin_modules.allproducts,
   },
+  {
+    icon: <PieChartIcon />,
+    name: "Stock Management",
+    path: admin_routes.allstockmanagement,
+    module: admin_modules.allstockmanagement,
+  },
 ];
 
 const management: NavItem[] = [
