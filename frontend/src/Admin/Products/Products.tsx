@@ -57,10 +57,10 @@ const AdminProducts = () => {
       (product) =>
         product.product_name?.toLowerCase().includes(searchTerm) ||
         product.category_name?.toLowerCase().includes(searchTerm) ||
-        String(product.active_stock?.quantity ?? "")
+        String(product.current_stock ?? "")
           .toLowerCase()
           .includes(searchTerm) ||
-        String(product.active_stock?.selling_price ?? "")
+        String(product.selling_price ?? "")
           .toLowerCase()
           .includes(searchTerm) ||
         (product.is_active ? "active" : "inactive").includes(searchTerm) ||

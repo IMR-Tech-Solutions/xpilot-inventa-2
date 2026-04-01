@@ -574,8 +574,8 @@ const Addstock = () => {
                         <span>Qty: <strong>{it.quantity}</strong></span>
                         <span>Price: <strong>₹{it.purchase_price}</strong></span>
                         <span>MFG: <strong>{dayjs(it.manufacture_date).format("DD MMM YYYY")}</strong></span>
-                        {it.cgst && parseFloat(it.cgst) > 0 && <span>CGST: <strong>₹{it.cgst}</strong></span>}
-                        {it.sgst && parseFloat(it.sgst) > 0 && <span>SGST: <strong>₹{it.sgst}</strong></span>}
+                        {it.cgst_percentage && parseFloat(it.cgst_percentage) > 0 && <span>CGST: <strong>₹{it.cgst_percentage}</strong></span>}
+                        {it.sgst_percentage && parseFloat(it.sgst_percentage) > 0 && <span>SGST: <strong>₹{it.sgst_percentage}</strong></span>}
                       </div>
                     </div>
                   </div>
