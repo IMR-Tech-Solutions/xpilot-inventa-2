@@ -64,6 +64,7 @@ const Rolepermissions = () => {
       Customers: [],
       "POS & Orders": [],
       Shop: [],
+      Reports: [],
       Other: [],
     };
 
@@ -82,6 +83,8 @@ const Rolepermissions = () => {
         groups["Customers"].push(permission);
       } else if (method.includes("pos") || method.includes("order")) {
         groups["POS & Orders"].push(permission);
+      } else if (method.startsWith("reports-") || method === "shop-pos-report") {
+        groups["Reports"].push(permission);
       } else if (method.includes("shop")) {
         groups["Shop"].push(permission);
       } else {

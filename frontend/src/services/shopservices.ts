@@ -199,3 +199,20 @@ export const updateManagerOrderStatusService = async (
   );
   return response.data;
 };
+
+// Manager records payment received from shop owner
+export const updateShopOrderPaymentService = async (
+  orderID: number,
+  payload: {
+    amount_paid: number;
+    payment_method: string;
+    online_amount?: number;
+    offline_amount?: number;
+  }
+) => {
+  const response = await api.patch(
+    `manager/orders/${orderID}/update-payment/`,
+    payload
+  );
+  return response.data;
+};

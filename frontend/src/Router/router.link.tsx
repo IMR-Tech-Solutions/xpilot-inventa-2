@@ -3,19 +3,9 @@ import { all_modules } from "../modules/modules";
 import { all_routes } from "./allroutes";
 import { admin_modules } from "../modules/adminmodules";
 import { admin_routes } from "./adminRoutes";
-import SalesRegister from "../pages/Reports/Salesregister";
-import ProductWiseSalesRegister from "../pages/Reports/Productwisesalesregister";
-import PurchaseRegister from "../pages/Reports/Purchaseregister";
-import ProductWisePurchaseRegister from "../pages/Reports/Productwisepurchaseregister";
-import InventoryReport from "../pages/Reports/Inventoryreport";
-import ReceivableReport from "../pages/Reports/Receivablereport";
-import AgeWiseReceivableReport from "../pages/Reports/Agewisereceivablereport";
-import ShopSalesRegister from "../pages/Reports/Shopsalesregister";
-import ProductWiseShopSalesRegister from "../pages/Reports/Productwiseshopsalesregister";
-import ShopReceivableReport from "../pages/Reports/Shopreceivablereport";
-import AgeWiseShopReceivableReport from "../pages/Reports/Agewiseshopreceivablereport";
-import StockLedger from "../pages/StockLedger/Stockledger";
-import Purchaseinvoice from "../pages/Purchaseinvoice/Purchaseinvoice";
+const Purchaseinvoice = lazy(
+  () => import("../pages/Purchaseinvoice/Purchaseinvoice"),
+);
 
 const AddTransporter = lazy(
   () => import("../pages/Transporter/AddTrasnporter"),
@@ -414,90 +404,6 @@ export const websiteRoutes = [
     link: all_routes.alltransporters,
     module: all_modules.addstock,
     element: <AllTrasnporters />,
-  },
-  {
-    id: "112",
-    name: "Sales Register",
-    link: all_routes.salesregister,
-    module: all_modules.report,
-    element: <SalesRegister />,
-  },
-  {
-    id: "113",
-    name: "ProductWiseSalesRegister",
-    link: all_routes.productwisesalesregister,
-    module: all_modules.report,
-    element: <ProductWiseSalesRegister />,
-  },
-  {
-    id: "114",
-    name: "PurchaseRegister",
-    link: all_routes.purchaseregister,
-    module: all_modules.report,
-    element: <PurchaseRegister />,
-  },
-  {
-    id: "115",
-    name: "ProductWisePurchaseRegister",
-    link: all_routes.productwisepurchaseregister,
-    module: all_modules.report,
-    element: <ProductWisePurchaseRegister />,
-  },
-  {
-    id: "116",
-    name: "inventoryreport",
-    link: all_routes.inventoryreport,
-    module: all_modules.report,
-    element: <InventoryReport />,
-  },
-  {
-    id: "117",
-    name: "receivablereport",
-    link: all_routes.receivablereport,
-    module: all_modules.report,
-    element: <ReceivableReport />,
-  },
-  {
-    id: "118",
-    name: "agewisereceivablereport",
-    link: all_routes.agewisereceivablereport,
-    module: all_modules.report,
-    element: <AgeWiseReceivableReport />,
-  },
-  {
-    id: "119",
-    name: "Shop Sales Register",
-    link: all_routes.shopsalesregister,
-    module: all_modules.report,
-    element: <ShopSalesRegister />,
-  },
-  {
-    id: "120",
-    name: "Product Wise Shop Sales",
-    link: all_routes.productwiseshopsalesregister,
-    module: all_modules.report,
-    element: <ProductWiseShopSalesRegister />,
-  },
-  {
-    id: "121",
-    name: "Shop recevible Report",
-    link: all_routes.shopreceivablereport,
-    module: all_modules.report,
-    element: <ShopReceivableReport />,
-  },
-  {
-    id: "122",
-    name: "Age wise recevible Report",
-    link: all_routes.agewiseshopreceivablereport,
-    module: all_modules.report,
-    element: <AgeWiseShopReceivableReport />,
-  },
-  {
-    id: "123",
-    name: "Stock Ledge",
-    link: all_routes.stockLedger,
-    module: all_modules.report,
-    element: <StockLedger />,
   },
 ];
 

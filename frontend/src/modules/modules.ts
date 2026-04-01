@@ -22,12 +22,10 @@ export const all_modules = {
   managestock: "managestock",
   stockalert: "stockalert",
   purchaseinvoice: "purchaseinvoice",
-  salesreport: "salesreport",
   managerpurchasereport: "managerpurchasereport",
   notifications: "notifications",
   pos: "pos",
   shop: "shop",
   shoprequests: "shoprequests",
   brokermanagement: "brokermanagement",
-  report: "reports",
 };

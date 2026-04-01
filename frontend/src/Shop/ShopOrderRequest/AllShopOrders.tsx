@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import PageMeta from "../../components/common/PageMeta";
-import { Table, Button, Space, Tag, Select } from "antd";
+import {
+  Table,
+  Button,
+  Space,
+  Tag,
+  Select,
+  Modal,
+  Form,
+  InputNumber,
+  Radio,
+  Descriptions,
+} from "antd";
 import ButtonComponentCard from "../../Admin/Components/ButtonComponentCard";
 import {
   getallmanagersshoporders,
@@ -8,11 +19,13 @@ import {
   getmanagershoporderinvoicedownload,
   getmanagershoporderdeliverychalandownload,
   updateManagerOrderStatusService,
+  updateShopOrderPaymentService,
 } from "../../services/shopservices";
 import {
   EyeOutlined,
   DownloadOutlined,
   TruckOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import { handleError } from "../../utils/handleError";
@@ -26,6 +39,12 @@ interface ShopOrder {
   order_status: string;
   items_count: number;
   total_amount: number;
+  payment_status: string;
+  payment_method: string | null;
+  amount_paid: number;
+  remaining_amount: number;
+  online_amount: number;
+  offline_amount: number;
   created_at: string;
 }
 
@@ -36,12 +55,21 @@ const MANAGER_STATUS_OPTIONS = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
-// Statuses where the dropdown should be locked (no further manager changes)
+// Statuses where the order status dropdown should be locked
 const LOCKED_STATUSES = new Set([
   "completed",
   "cancelled",
   "delivery_in_progress",
 ]);
+
+const formatINR = (v: number) =>
+  `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+
+const PAYMENT_STATUS_COLOR: Record<string, string> = {
+  paid: "green",
+  partial: "orange",
+  pending: "red",
+};
 
 const AllShopOrders = () => {
   const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
@@ -58,13 +86,20 @@ const AllShopOrders = () => {
     };
   }>({});
 
+  // ── Payment modal state ────────────────────────────────────────────────────
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentOrder, setPaymentOrder] = useState<ShopOrder | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [form] = Form.useForm();
+  const watchedMethod = Form.useWatch("payment_method", form);
+  const watchedAmountPaid = Form.useWatch("amount_paid", form);
+
   const fetchShopOrders = async () => {
     setLoading(true);
     try {
       const data = await getallmanagersshoporders();
       setShopOrders(data);
     } catch (err) {
-      console.error("Error fetching shop orders:", err);
       handleError(err);
     } finally {
       setLoading(false);
@@ -76,7 +111,7 @@ const AllShopOrders = () => {
   }, []);
 
   const getOrderStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
+    const colors: Record<string, string> = {
       order_placed: "orange",
       partially_fulfilled: "blue",
       packing: "cyan",
@@ -87,7 +122,7 @@ const AllShopOrders = () => {
     return colors[status] || "default";
   };
 
-  // ── Status update handler ──────────────────────────────────────────────────
+  // ── Status update ──────────────────────────────────────────────────────────
   const handleStatusChange = async (orderID: number, newStatus: string) => {
     setLoadingButtons((prev) => ({
       ...prev,
@@ -95,15 +130,13 @@ const AllShopOrders = () => {
     }));
     try {
       await updateManagerOrderStatusService(orderID, newStatus);
-      // Optimistic update — replace status in local state
       setShopOrders((prev) =>
         prev.map((o) =>
-          o.id === orderID ? { ...o, order_status: newStatus } : o,
-        ),
+          o.id === orderID ? { ...o, order_status: newStatus } : o
+        )
       );
-      toast.success(`Order status updated to "${newStatus.replace("_", " ")}"`);
+      toast.success(`Order status updated to "${newStatus.replace(/_/g, " ")}"`);
     } catch (error) {
-      console.error("Error updating order status:", error);
       handleError(error);
     } finally {
       setLoadingButtons((prev) => ({
@@ -113,97 +146,101 @@ const AllShopOrders = () => {
     }
   };
 
+  // ── Payment modal open ─────────────────────────────────────────────────────
+  const openPaymentModal = (order: ShopOrder) => {
+    setPaymentOrder(order);
+    form.setFieldsValue({
+      amount_paid: order.amount_paid || 0,
+      payment_method: order.payment_method || "cash",
+      online_amount: order.online_amount || 0,
+      offline_amount: order.offline_amount || 0,
+    });
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!paymentOrder) return;
+    try {
+      const values = await form.validateFields();
+      setPaymentLoading(true);
+
+      const payload: any = {
+        amount_paid: values.amount_paid,
+        payment_method: values.payment_method,
+      };
+      if (values.payment_method === "mix") {
+        payload.online_amount = values.online_amount || 0;
+        payload.offline_amount = values.offline_amount || 0;
+      }
+
+      const result = await updateShopOrderPaymentService(paymentOrder.id, payload);
+
+      // Update local state
+      setShopOrders((prev) =>
+        prev.map((o) =>
+          o.id === paymentOrder.id
+            ? {
+                ...o,
+                payment_status: result.payment_status,
+                payment_method: result.payment_method,
+                amount_paid: result.amount_paid,
+                remaining_amount: result.remaining_amount,
+                online_amount: result.online_amount,
+                offline_amount: result.offline_amount,
+              }
+            : o
+        )
+      );
+
+      toast.success("Payment recorded successfully.");
+      setPaymentModalOpen(false);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   // ── PDF handlers ───────────────────────────────────────────────────────────
   const handleView = async (orderID: number) => {
-    setLoadingButtons((prev) => ({
-      ...prev,
-      [orderID]: { ...prev[orderID], view: true },
-    }));
+    setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], view: true } }));
     const toastId = toast.loading("Opening order details...");
     try {
       await getmanagershoporderinvoice(orderID);
-      toast.update(toastId, {
-        render: "Order details opened successfully!",
-        type: "success",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Opened successfully!", type: "success", isLoading: false, autoClose: 2000 });
     } catch (error) {
-      console.error("Error viewing order:", error);
       handleError(error);
-      toast.update(toastId, {
-        render: "Failed to open order details",
-        type: "error",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Failed to open", type: "error", isLoading: false, autoClose: 2000 });
     } finally {
-      setLoadingButtons((prev) => ({
-        ...prev,
-        [orderID]: { ...prev[orderID], view: false },
-      }));
+      setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], view: false } }));
     }
   };
 
   const handleDownload = async (orderID: number) => {
-    setLoadingButtons((prev) => ({
-      ...prev,
-      [orderID]: { ...prev[orderID], invoice: true },
-    }));
-    const toastId = toast.loading("Downloading order invoice...");
+    setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], invoice: true } }));
+    const toastId = toast.loading("Downloading invoice...");
     try {
       await getmanagershoporderinvoicedownload(orderID);
-      toast.update(toastId, {
-        render: "Order invoice downloaded successfully!",
-        type: "success",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Downloaded!", type: "success", isLoading: false, autoClose: 2000 });
     } catch (error) {
-      console.error("Error downloading invoice:", error);
       handleError(error);
-      toast.update(toastId, {
-        render: "Failed to download invoice",
-        type: "error",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Failed", type: "error", isLoading: false, autoClose: 2000 });
     } finally {
-      setLoadingButtons((prev) => ({
-        ...prev,
-        [orderID]: { ...prev[orderID], invoice: false },
-      }));
+      setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], invoice: false } }));
     }
   };
 
   const handledownloaddeliverychalan = async (orderID: number) => {
-    setLoadingButtons((prev) => ({
-      ...prev,
-      [orderID]: { ...prev[orderID], chalan: true },
-    }));
-    const toastId = toast.loading("Downloading delivery chalan...");
+    setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], chalan: true } }));
+    const toastId = toast.loading("Downloading delivery challan...");
     try {
       await getmanagershoporderdeliverychalandownload(orderID);
-      toast.update(toastId, {
-        render: "E-bill chalan downloaded successfully!",
-        type: "success",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Downloaded!", type: "success", isLoading: false, autoClose: 2000 });
     } catch (error) {
-      console.error("Error downloading E-bill:", error);
       handleError(error);
-      toast.update(toastId, {
-        render: "Failed to download E-bill",
-        type: "error",
-        isLoading: false,
-        autoClose: 2000,
-      });
+      toast.update(toastId, { render: "Failed", type: "error", isLoading: false, autoClose: 2000 });
     } finally {
-      setLoadingButtons((prev) => ({
-        ...prev,
-        [orderID]: { ...prev[orderID], chalan: false },
-      }));
+      setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], chalan: false } }));
     }
   };
 
@@ -212,38 +249,30 @@ const AllShopOrders = () => {
     {
       title: "Sr. No",
       key: "srno",
+      width: 65,
       render: (_: any, __: ShopOrder, index: number) =>
         (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: "Order Number",
+      title: "Order No",
       dataIndex: "order_number",
       key: "order_number",
       sorter: (a: ShopOrder, b: ShopOrder) =>
         (a.order_number || "").localeCompare(b.order_number || ""),
-      render: (orderNumber: string) => (
-        <span className="truncate text-gray-800 dark:text-white/90">
-          {orderNumber || "N/A"}
-        </span>
-      ),
     },
     {
-      title: "Shop Owner",
+      title: "Franchise Owner",
       dataIndex: "shop_owner_name",
       key: "shop_owner_name",
       sorter: (a: ShopOrder, b: ShopOrder) =>
         (a.shop_owner_name || "").localeCompare(b.shop_owner_name || ""),
-      render: (name: string) => (
-        <span className="truncate text-gray-800 dark:text-white/90">
-          {name || "N/A"}
-        </span>
-      ),
     },
     {
-      title: "Items Count",
+      title: "Items",
       dataIndex: "items_count",
       key: "items_count",
-      sorter: (a: ShopOrder, b: ShopOrder) => a.items_count - b.items_count,
+      width: 70,
+      align: "center" as const,
       render: (count: number) => (
         <span className="font-medium text-blue-600">{count}</span>
       ),
@@ -252,25 +281,15 @@ const AllShopOrders = () => {
       title: "Order Status",
       dataIndex: "order_status",
       key: "order_status",
-      sorter: (a: ShopOrder, b: ShopOrder) =>
-        (a.order_status || "").localeCompare(b.order_status || ""),
       render: (currentStatus: string, record: ShopOrder) => {
         const isLocked = LOCKED_STATUSES.has(currentStatus);
-
         if (isLocked) {
-          // Show a plain read-only tag for terminal / locked statuses
           return (
-            <Tag
-              color={getOrderStatusColor(currentStatus)}
-              className="capitalize"
-            >
-              {currentStatus
-                ? currentStatus.replace(/_/g, " ").toUpperCase()
-                : "N/A"}
+            <Tag color={getOrderStatusColor(currentStatus)} className="capitalize">
+              {currentStatus.replace(/_/g, " ").toUpperCase()}
             </Tag>
           );
         }
-
         return (
           <Select
             value={currentStatus}
@@ -278,27 +297,17 @@ const AllShopOrders = () => {
             style={{ minWidth: 170 }}
             loading={loadingButtons[record.id]?.status}
             disabled={loadingButtons[record.id]?.status}
-            onChange={(newStatus: string) =>
-              handleStatusChange(record.id, newStatus)
-            }
+            onChange={(newStatus: string) => handleStatusChange(record.id, newStatus)}
             options={[
-              // Show the current status at the top as a disabled display option
-              // so the user can see what it is before selecting
               {
                 value: currentStatus,
                 label: (
-                  <Tag
-                    color={getOrderStatusColor(currentStatus)}
-                    style={{ margin: 0 }}
-                  >
+                  <Tag color={getOrderStatusColor(currentStatus)} style={{ margin: 0 }}>
                     {currentStatus.replace(/_/g, " ").toUpperCase()}
                   </Tag>
                 ),
               },
-              // Separator then allowed transitions
-              ...MANAGER_STATUS_OPTIONS.filter(
-                (opt) => opt.value !== currentStatus,
-              ),
+              ...MANAGER_STATUS_OPTIONS.filter((opt) => opt.value !== currentStatus),
             ]}
           />
         );
@@ -308,12 +317,37 @@ const AllShopOrders = () => {
       title: "Total Amount",
       dataIndex: "total_amount",
       key: "total_amount",
+      align: "right" as const,
       sorter: (a: ShopOrder, b: ShopOrder) => a.total_amount - b.total_amount,
       render: (amount: number) => (
-        <span className="font-medium text-gray-800 dark:text-white/90">
-          ₹{amount?.toLocaleString() || 0}
-        </span>
+        <span className="font-medium">{formatINR(amount)}</span>
       ),
+    },
+    {
+      title: "Payment",
+      key: "payment",
+      render: (_: any, record: ShopOrder) => {
+        if (record.order_status !== "completed") {
+          return <span className="text-gray-400 text-xs">—</span>;
+        }
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={PAYMENT_STATUS_COLOR[record.payment_status] || "default"}>
+              {(record.payment_status || "pending").toUpperCase()}
+            </Tag>
+            {record.payment_status !== "paid" && (
+              <span className="text-xs text-red-500">
+                Due: {formatINR(record.remaining_amount)}
+              </span>
+            )}
+            {record.payment_status === "paid" && (
+              <span className="text-xs text-green-600">
+                Paid: {formatINR(record.amount_paid)}
+              </span>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: "Order Date",
@@ -321,42 +355,56 @@ const AllShopOrders = () => {
       key: "created_at",
       sorter: (a: ShopOrder, b: ShopOrder) =>
         dayjs(a.created_at).unix() - dayjs(b.created_at).unix(),
-      render: (date: string) => (
-        <span className="truncate text-gray-800 dark:text-white/90">
-          {date ? dayjs(date).format("DD MMM YYYY") : "N/A"}
-        </span>
-      ),
+      render: (date: string) =>
+        date ? dayjs(date).format("DD MMM YYYY") : "N/A",
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, record: ShopOrder) => (
-        <Space size="small">
+        <Space size="small" wrap>
           <Button
-            id="table-view-btn"
             size="small"
             icon={<EyeOutlined />}
             loading={loadingButtons[record.id]?.view}
             onClick={() => handleView(record.id)}
+            title="View Invoice"
           />
           <Button
-            id="table-download-btn"
             size="small"
             icon={<DownloadOutlined />}
             loading={loadingButtons[record.id]?.invoice}
             onClick={() => handleDownload(record.id)}
+            title="Download Invoice"
           />
           <Button
-            id="table-download-btn"
             size="small"
             icon={<TruckOutlined />}
             loading={loadingButtons[record.id]?.chalan}
             onClick={() => handledownloaddeliverychalan(record.id)}
+            title="Delivery Challan"
           />
+          {record.order_status === "completed" && record.payment_status !== "paid" && (
+            <Button
+              size="small"
+              type="primary"
+              icon={<DollarOutlined />}
+              onClick={() => openPaymentModal(record)}
+              title="Record Payment"
+            >
+              Payment
+            </Button>
+          )}
         </Space>
       ),
     },
   ];
+
+  // ── Computed remaining in modal ────────────────────────────────────────────
+  const computedRemaining =
+    paymentOrder
+      ? Math.max(0, paymentOrder.total_amount - (watchedAmountPaid || 0))
+      : 0;
 
   return (
     <div>
@@ -376,16 +424,118 @@ const AllShopOrders = () => {
           loading={loading}
           rowKey="id"
           className="custom-orders-table"
-          pagination={{
-            pageSize: 10,
-          }}
-          onChange={(pagination) => {
-            setCurrentPage(pagination.current || 1);
-          }}
-          scroll={{ x: 900 }}
+          pagination={{ pageSize: 10 }}
+          onChange={(pagination) => setCurrentPage(pagination.current || 1)}
+          scroll={{ x: 1000 }}
           locale={{ emptyText: "No shop orders found." }}
         />
       </ButtonComponentCard>
+
+      {/* ── Payment Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        title={`Record Payment — ${paymentOrder?.order_number || ""}`}
+        open={paymentModalOpen}
+        onCancel={() => setPaymentModalOpen(false)}
+        onOk={handlePaymentSubmit}
+        okText="Save Payment"
+        confirmLoading={paymentLoading}
+        width={480}
+      >
+        {paymentOrder && (
+          <>
+            <Descriptions size="small" column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="Franchise">
+                {paymentOrder.shop_owner_name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Total Amount">
+                <strong>{formatINR(paymentOrder.total_amount)}</strong>
+              </Descriptions.Item>
+              <Descriptions.Item label="Already Paid">
+                {formatINR(paymentOrder.amount_paid)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Remaining">
+                <span className="text-red-500 font-medium">
+                  {formatINR(paymentOrder.remaining_amount)}
+                </span>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Form form={form} layout="vertical">
+              <Form.Item
+                name="amount_paid"
+                label="Amount Paid (₹)"
+                rules={[
+                  { required: true, message: "Enter amount paid" },
+                  {
+                    validator: (_, value) =>
+                      value >= 0 && value <= paymentOrder.total_amount
+                        ? Promise.resolve()
+                        : Promise.reject(
+                            `Must be between 0 and ${formatINR(paymentOrder.total_amount)}`
+                          ),
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={0}
+                  max={paymentOrder.total_amount}
+                  style={{ width: "100%" }}
+                  prefix="₹"
+                  precision={2}
+                />
+              </Form.Item>
+
+              {/* Live remaining preview */}
+              <div
+                style={{
+                  background: computedRemaining > 0 ? "#fff7e6" : "#f6ffed",
+                  border: `1px solid ${computedRemaining > 0 ? "#ffd591" : "#b7eb8f"}`,
+                  borderRadius: 6,
+                  padding: "6px 12px",
+                  marginBottom: 16,
+                  fontSize: 13,
+                }}
+              >
+                Remaining after this payment:{" "}
+                <strong style={{ color: computedRemaining > 0 ? "#d46b08" : "#389e0d" }}>
+                  {formatINR(computedRemaining)}
+                </strong>
+              </div>
+
+              <Form.Item
+                name="payment_method"
+                label="Payment Method"
+                rules={[{ required: true, message: "Select payment method" }]}
+              >
+                <Radio.Group>
+                  <Radio.Button value="cash">Cash</Radio.Button>
+                  <Radio.Button value="online">Online</Radio.Button>
+                  <Radio.Button value="mix">Mix</Radio.Button>
+                </Radio.Group>
+              </Form.Item>
+
+              {watchedMethod === "mix" && (
+                <Space style={{ width: "100%" }} direction="vertical" size={0}>
+                  <Form.Item
+                    name="online_amount"
+                    label="Online Amount (₹)"
+                    rules={[{ required: true, message: "Enter online amount" }]}
+                  >
+                    <InputNumber min={0} style={{ width: "100%" }} prefix="₹" precision={2} />
+                  </Form.Item>
+                  <Form.Item
+                    name="offline_amount"
+                    label="Cash/Offline Amount (₹)"
+                    rules={[{ required: true, message: "Enter offline amount" }]}
+                  >
+                    <InputNumber min={0} style={{ width: "100%" }} prefix="₹" precision={2} />
+                  </Form.Item>
+                </Space>
+              )}
+            </Form>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };

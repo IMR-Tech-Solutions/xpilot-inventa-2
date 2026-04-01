@@ -148,63 +148,7 @@ export const reportItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Reports",
-    subItems: [
-      {
-        name: "Sales Register",
-        path: all_routes.salesregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Product Wise Sales Register",
-        path: all_routes.productwisesalesregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Purchase Register",
-        path: all_routes.purchaseregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Product Wise Purchase Register",
-        path: all_routes.productwisepurchaseregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Inventory Report",
-        path: all_routes.inventoryreport,
-        module: all_modules.report,
-      },
-      {
-        name: "Receivable Report",
-        path: all_routes.receivablereport,
-        module: all_modules.report,
-      },
-      {
-        name: "Age Wise Receivable Report",
-        path: all_routes.agewisereceivablereport,
-        module: all_modules.report,
-      },
-      {
-        name: "Shop Sales Register Report",
-        path: all_routes.shopsalesregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Product Wise Shop Sales Report",
-        path: all_routes.productwiseshopsalesregister,
-        module: all_modules.report,
-      },
-      {
-        name: "Shop Recevible Report",
-        path: all_routes.shopreceivablereport,
-        module: all_modules.report,
-      },
-      {
-        name: "Age wise recevible Report",
-        path: all_routes.agewiseshopreceivablereport,
-        module: all_modules.report,
-      },
-    ],
+    subItems: [],
   },
 ];
 

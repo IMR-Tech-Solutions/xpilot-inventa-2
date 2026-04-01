@@ -81,38 +81,7 @@ const reportItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Reports",
-    subItems: [
-      {
-        name: "Sales Report",
-        path: admin_routes.adminsalesreport,
-        module: admin_modules.adminreports,
-      },
-      {
-        name: "Purchase Report",
-        path: admin_routes.adminpurchasereport,
-        module: admin_modules.adminreports,
-      },
-      {
-        name: "Shop Purchase Report",
-        path: admin_routes.adminshoppurchasereport,
-        module: admin_modules.adminreports,
-      },
-      {
-        name: "Inventory Report",
-        path: admin_routes.admininventoryreport,
-        module: admin_modules.adminreports,
-      },
-      {
-        name: "Tax Report",
-        path: admin_routes.admintaxreport,
-        module: admin_modules.adminreports,
-      },
-      {
-        name: "Broker Report",
-        path: admin_routes.adminbrokerreport,
-        module: admin_modules.adminreports,
-      },
-    ],
+    subItems: [],
   },
 ];
 
@@ -125,14 +94,14 @@ const AdminSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
-    [location.pathname]
+    [location.pathname],
   );
 
   useEffect(() => {
@@ -164,7 +133,7 @@ const AdminSidebar: React.FC = () => {
             });
           }
         });
-      }
+      },
     );
 
     if (!submenuMatched) {
@@ -186,7 +155,7 @@ const AdminSidebar: React.FC = () => {
 
   const handleSubmenuToggle = (
     index: number,
-    menuType: "main" | "others" | "management" | "reportItems" | "stockItems"
+    menuType: "main" | "others" | "management" | "reportItems" | "stockItems",
   ) => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
@@ -202,7 +171,7 @@ const AdminSidebar: React.FC = () => {
 
   const renderMenuItems = (
     items: NavItem[],
-    menuType: "main" | "others" | "management" | "reportItems" | "stockItems"
+    menuType: "main" | "others" | "management" | "reportItems" | "stockItems",
   ) => (
     <ul className="flex flex-col gap-4">
       {items.map((nav, index) => (
@@ -333,8 +302,8 @@ const AdminSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}

@@ -46,33 +46,6 @@ export const all_routes = {
   addtransporter: "/add-transporter",
   alltransporters: "/all-transporters",
 
-  // ── Reports: Channel 1 — POS Sales ───────────────────────────────────────
-  salesregister: "/reports/sales-register",
-  productwisesalesregister: "/reports/product-wise-sales",
-
-  // ── Reports: Purchase ─────────────────────────────────────────────────────
-  purchaseregister: "/reports/purchase-register",
-  productwisepurchaseregister: "/reports/product-wise-purchase",
-
-  // ── Reports: Inventory ────────────────────────────────────────────────────
-  inventoryreport: "/reports/inventory",
-
-  // ── Reports: Channel 1 — POS Receivables ─────────────────────────────────
-  receivablereport: "/reports/receivable",
-  agewisereceivablereport: "/reports/age-wise-receivable",
-
-  // ── Reports: Channel 2 — Shop Sales (Manager → Shop Owner) ───────────────
-  shopsalesregister: "/reports/shop-sales-register",
-  productwiseshopsalesregister: "/reports/product-wise-shop-sales",
-
-  // ── Reports: Channel 2 — Shop Receivables ────────────────────────────────
-  shopreceivablereport: "/reports/shop-receivable",
-  agewiseshopreceivablereport: "/reports/age-wise-shop-receivable",
-
-  // ── POS ───────────────────────────────────────────────────────────────────
-  pos: "/pos",
-  stockLedger:"/stock-ledger",
-
   // ── Shop (Shop Owner) ─────────────────────────────────────────────────────
   shop: "/shop",
   shopownerorders: "/shop/orders",
@@ -104,4 +77,5 @@ export const all_routes = {
   videos: "/videos",
   lineChart: "/line-chart",
   barChart: "/bar-chart",
+  pos: "/pos",
 };
