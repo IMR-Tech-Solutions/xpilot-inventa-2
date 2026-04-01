@@ -164,10 +164,4 @@ AVAILABLE_SERVICES = [
         "method":"shop-request",
         "module":"shoprequests"
     },
-    #----Reports-----
-    {
-        "name":"Reports",
-        "method":"reports",
-        "module":"reports"
-    }
 ]

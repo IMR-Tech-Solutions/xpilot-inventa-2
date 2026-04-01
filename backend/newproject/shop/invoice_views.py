@@ -30,7 +30,10 @@ class ManagerOrderInvoicePDFBaseView(APIView):
             order = ShopOwnerOrders.objects.get(id=order_id)
         except ShopOwnerOrders.DoesNotExist:
             raise Http404("Order not found")
-        
+
+        if order.status == 'cancelled':
+            raise Http404("Invoice not available for cancelled orders")
+
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
             ).select_related('product')
@@ -130,7 +133,10 @@ class ManagerOrderDeliveryChallanPDFDownloadView(APIView):
             order = ShopOwnerOrders.objects.get(id=order_id)
         except ShopOwnerOrders.DoesNotExist:
             raise Http404("Order not found")
-        
+
+        if order.status == 'cancelled':
+            raise Http404("Delivery challan not available for cancelled orders")
+
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
         ).select_related('product')
@@ -184,7 +190,10 @@ class ShopOwnerOrderItemInvoicePDFBaseView(APIView):
             id=order_id,
             shop_owner=request.user
         )
-        
+
+        if order.status == 'cancelled':
+            raise Http404("Invoice not available for cancelled orders")
+
         # Get specific order item
         order_item = get_object_or_404(
             ShopOrderItem,

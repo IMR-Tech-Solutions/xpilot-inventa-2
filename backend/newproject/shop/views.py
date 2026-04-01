@@ -412,25 +412,38 @@ class CancelShopOrderView(APIView):
             return Response({
                 'error': f'Cannot cancel order with status: {order.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             from .models import ManagerRequest
+            from django.db.models import F
+
+            # Restore stock for all fulfilled items (stock was deducted on acceptance)
+            fulfilled_items = order.order_items.filter(
+                fulfilled_by_manager__isnull=False,
+                fulfilled_quantity__isnull=False
+            ).select_related('product')
+
+            for item in fulfilled_items:
+                Product.objects.filter(pk=item.product.pk).update(
+                    current_stock=F('current_stock') + item.fulfilled_quantity
+                )
+
+            # Cancel all non-cancelled manager requests for this order
             cancelled_requests = ManagerRequest.objects.filter(
-                order_item__order=order,
-                status='pending'
-            ).update(
+                order_item__order=order
+            ).exclude(status='cancelled').update(
                 status='cancelled',
                 response_date=timezone.now()
             )
-            
+
             order.status = 'cancelled'
             order.save()
-            
+
             return Response({
-                'message': f'Order cancelled successfully. {cancelled_requests} pending requests were cancelled.',
+                'message': f'Order cancelled successfully. Stock restored for {fulfilled_items.count()} fulfilled items.',
                 'order': ShopOwnerOrderSerializer(order).data
             })
-            
+
         except Exception as e:
             return Response({
                 'error': f'Failed to cancel order: {str(e)}'
@@ -562,12 +575,89 @@ class ShopOwnerConfirmDeliveryView(APIView):
         ).update(status='fulfilled')
 
         shop_order.status = 'completed'
+        shop_order.remaining_amount = shop_order.total_amount
+        shop_order.amount_paid = 0
+        shop_order.payment_status = 'pending'
         shop_order.save()
-        
+
         return Response({
             'message': f'Delivery confirmed! {products_added} products added to your inventory',
             'order_status': 'completed',
             'products_added': products_added
+        })
+
+
+class UpdateShopOrderPaymentView(APIView):
+    """Manager/Admin records payment received from a shop owner for a completed order."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-request"
+
+    @transaction.atomic
+    def patch(self, request, order_id):
+        order = ShopOwnerOrders.objects.filter(
+            id=order_id,
+            order_items__fulfilled_by_manager=request.user,
+            status='completed'
+        ).distinct().first()
+
+        if not order:
+            return Response(
+                {'error': 'Order not found or not yet completed.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            amount_paid = Decimal(str(request.data.get('amount_paid', order.amount_paid)))
+            payment_method = request.data.get('payment_method', order.payment_method)
+            online_amount = Decimal(str(request.data.get('online_amount', 0)))
+            offline_amount = Decimal(str(request.data.get('offline_amount', 0)))
+        except Exception:
+            return Response({'error': 'Invalid payment values.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount_paid < 0:
+            return Response({'error': 'Amount paid cannot be negative.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount_paid > order.total_amount:
+            return Response({'error': 'Amount paid cannot exceed total order amount.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if payment_method == 'mix':
+            if online_amount + offline_amount != amount_paid:
+                return Response(
+                    {'error': 'Online + offline amounts must equal total amount paid.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            online_amount = Decimal('0')
+            offline_amount = Decimal('0')
+
+        remaining = order.total_amount - amount_paid
+        if remaining <= 0:
+            payment_status = 'paid'
+            remaining = Decimal('0')
+        elif amount_paid > 0:
+            payment_status = 'partial'
+        else:
+            payment_status = 'pending'
+
+        order.amount_paid = amount_paid
+        order.remaining_amount = remaining
+        order.payment_status = payment_status
+        order.payment_method = payment_method
+        order.online_amount = online_amount
+        order.offline_amount = offline_amount
+        order.save()
+
+        return Response({
+            'message': 'Payment updated successfully.',
+            'order_id': order.id,
+            'order_number': order.order_number,
+            'total_amount': float(order.total_amount),
+            'amount_paid': float(order.amount_paid),
+            'remaining_amount': float(order.remaining_amount),
+            'payment_status': order.payment_status,
+            'payment_method': order.payment_method,
+            'online_amount': float(order.online_amount),
+            'offline_amount': float(order.offline_amount),
         })
 
 
@@ -668,7 +758,13 @@ class ManagerFulfilledOrdersListView(APIView):
                 'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}",
                 'order_status': order.status,
                 'items_count': manager_items.count(),
-                'total_amount': total_amount,
+                'total_amount': float(order.total_amount),
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method,
+                'amount_paid': float(order.amount_paid),
+                'remaining_amount': float(order.remaining_amount),
+                'online_amount': float(order.online_amount),
+                'offline_amount': float(order.offline_amount),
                 'created_at': order.created_at,
             })
         

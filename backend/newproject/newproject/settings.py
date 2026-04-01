@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'broker',
     'notifications',
     'transport',
+    'management',
 ]
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

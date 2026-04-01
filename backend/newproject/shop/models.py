@@ -46,17 +46,34 @@ class ShopOwnerProducts(models.Model):
 class ShopOwnerOrders(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('order_placed', 'Order Placed'), 
+        ('order_placed', 'Order Placed'),
         ('partially_fulfilled', 'Partially Fulfilled'),
-        ('delivery_in_progress', 'Delivery in Progress'), 
+        ('delivery_in_progress', 'Delivery in Progress'),
         ('packing', 'Packing'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
+    ]
+    PAYMENT_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('partial', 'Partial'),
+        ('paid', 'Paid'),
+    ]
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('online', 'Online'),
+        ('mix', 'Mix'),
     ]
     order_number = models.CharField(max_length=20, unique=True, default=generate_shop_order_number)
     shop_owner = models.ForeignKey(UserMaster, on_delete=models.CASCADE, related_name='shop_orders')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # ── Payment tracking (set by manager/admin after delivery confirmed) ──────
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default='pending')
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    online_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    offline_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:

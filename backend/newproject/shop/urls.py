@@ -8,7 +8,7 @@ from .views import (
     # Manager Views  
     ManagerPendingRequestsView, ManagerRequestDetailView,
     ManagerAcceptRequestView, ManagerRejectRequestView, 
-    ManagerRequestHistoryView,UpdateShopOwnerProductPriceView,ManagerFulfilledOrdersListView,ManagerOrderDetailView,ManagerUpdateOrderStatusView
+    ManagerRequestHistoryView,UpdateShopOwnerProductPriceView,ManagerFulfilledOrdersListView,ManagerOrderDetailView,ManagerUpdateOrderStatusView,UpdateShopOrderPaymentView
 )
 from .invoice_views import (ManagerOrderInvoicePDFView,ManagerOrderInvoicePDFDownloadView,ShopOwnerOrderItemInvoicePDFDownloadView,ShopOwnerOrderItemInvoicePDFView,ManagerOrderDeliveryChallanPDFDownloadView)
 
@@ -40,4 +40,5 @@ urlpatterns = [
     path('manager/orders/<int:order_id>/invoice/pdf/', ManagerOrderInvoicePDFDownloadView.as_view(), name='manager-invoice-download'),
     path('manager/orders/<int:order_id>/delivery-challan/pdf/', ManagerOrderDeliveryChallanPDFDownloadView.as_view(), name='manager-delivery-challan-download'),
     path('manager/orders/<int:order_id>/update-status/', ManagerUpdateOrderStatusView.as_view(), name='manager-update-order-status'),
+    path('manager/orders/<int:order_id>/update-payment/', UpdateShopOrderPaymentView.as_view(), name='manager-update-order-payment'),
 ]
