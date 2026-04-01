@@ -58,6 +58,7 @@ const Users = lazy(() => import("../Admin/Users/Users"));
 const AdminHome = lazy(() => import("../Admin/Home/AdminHome"));
 const Allcategories = lazy(() => import("../Admin/Categories/Allcategories"));
 const AdminProducts = lazy(() => import("../Admin/Products/Products"));
+const AllUsersData = lazy(() => import("../Admin/Pages/AllUsersData/AllUsersData"));
 
 // Chat
 const Chat = lazy(() => import("../pages/Chat/Chat"));
@@ -477,6 +478,13 @@ export const adminPanelRoutes = [
     link: admin_routes.allproducts,
     module: admin_modules.allproducts,
     element: <AdminProducts />,
+  },
+  {
+    id: "8",
+    name: "All Users Data",
+    link: admin_routes.allusersdata,
+    module: admin_modules.allusersdata,
+    element: <AllUsersData />,
   },
 ];
 

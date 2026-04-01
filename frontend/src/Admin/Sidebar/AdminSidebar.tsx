@@ -58,11 +58,11 @@ const management: NavItem[] = [
         path: admin_routes.users,
         module: admin_modules.users,
       },
-      //   {
-      //     name: "All Users",
-      //     path: admin_routes.allusers,
-      //     module: admin_modules.allusers,
-      //   },
+      {
+        name: "All Users Data",
+        path: admin_routes.allusersdata,
+        module: admin_modules.allusersdata,
+      },
     ],
   },
 ];

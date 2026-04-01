@@ -6,4 +6,5 @@ export const admin_routes = {
   rolepermissions: "admin/role-permissions/:roleID",
   allcategories: "/admin/categories",
   allproducts: "/admin/products",
+  allusersdata: "/admin/all-users-data",
 };

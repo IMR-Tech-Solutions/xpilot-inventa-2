@@ -7,4 +7,5 @@ export const admin_modules = {
   allcategories: "allcategories",
   allproducts: "allproducts",
   adminreports: "adminreports",
+  allusersdata: "allusersdata",
 };
