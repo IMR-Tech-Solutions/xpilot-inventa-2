@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Invoice - {{ order_number }}</title>
+    <style>
+      @page { size: A4; margin: 0.6cm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Arial", sans-serif; font-size: 11px; color: #000; padding: 15px; }
+      .container { max-width: 210mm; margin: 0 auto; }
+
+      /* Header */
+      .header { border: 1px solid #000; padding: 14px; margin-bottom: 10px; }
+      .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+      .company-logo { width: 110px; height: 70px; object-fit: contain; margin-bottom: 6px; }
+      .invoice-title { font-size: 22px; font-weight: bold; color: #000; text-align: right; }
+      .header-details {
+        border-top: 1px solid #000; padding-top: 8px;
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      }
+      .header-details div { font-size: 10px; }
+      .header-details strong { display: inline-block; min-width: 75px; }
+
+      /* Info sections */
+      .info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+      .info-section { border: 1px solid #000; padding: 10px; }
+      .info-section h3 { font-size: 11px; font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+      .info-section p { margin: 2px 0; line-height: 1.4; font-size: 10px; }
+
+      /* Table */
+      table { width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #000; }
+      table th, table td { border: 1px solid #000; padding: 5px 4px; text-align: left; font-size: 9px; }
+      table th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+      td.num { text-align: right; }
+      td.center { text-align: center; }
+
+      /* Totals */
+      .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+      .totals-section { min-width: 260px; border: 1px solid #000; padding: 10px; }
+      .totals-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid #eee; }
+      .totals-row:last-child { border-bottom: none; }
+      .totals-row.grand-total { border-top: 2px solid #000; border-bottom: none; font-weight: bold; font-size: 13px; padding-top: 8px; margin-top: 4px; }
+      .totals-row.paid-row { color: #1a7a1a; font-weight: bold; }
+      .totals-row.remaining-row { color: #c0392b; font-weight: bold; }
+
+      /* Payment breakdown box */
+      .payment-box { border: 1px solid #000; padding: 8px 10px; margin-bottom: 12px; font-size: 10px; }
+      .payment-box h3 { font-size: 11px; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+      .payment-box-row { display: flex; justify-content: space-between; padding: 2px 0; }
+
+      /* Signature */
+      .signature { text-align: right; margin-top: 30px; padding-top: 10px; border-top: 1px solid #000; }
+      .signature p { font-size: 10px; font-weight: bold; }
+
+      /* Footer */
+      .footer { margin-top: 16px; text-align: center; font-size: 9px; color: #666; border-top: 1px solid #000; padding-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <div>
+            <img src="../../media/default/default.png" alt="Logo" class="company-logo" />
+            <p style="font-weight:bold; font-size:12px;">INVENTA</p>
+          </div>
+          <div class="invoice-title">{{ invoice_title }}</div>
+        </div>
+        <div class="header-details">
+          <div><strong>Order #:</strong> {{ order_number }}</div>
+          <div><strong>Date:</strong> {{ date }}</div>
+          <div>
+            <strong>Order:</strong> {{ order_status|upper }}&nbsp;&nbsp;
+            <strong>Payment:</strong> {{ payment_status|upper }}
+          </div>
+          <div><strong>Method:</strong> {{ payment_method|upper }}</div>
+          <div><strong>Prepared by:</strong> {{ user_name }}</div>
+        </div>
+      </div>
+
+      <!-- Customer Info -->
+      <div class="info-section" style="margin-bottom:10px;">
+        <h3>Customer Information</h3>
+        <p><strong>Name:</strong> {{ customer_name }}</p>
+        <p><strong>Phone:</strong> {{ customer_phone }}</p>
+        <p><strong>Email:</strong> {{ customer_email }}</p>
+        {% if customer_address != 'N/A' %}
+        <p><strong>Address:</strong> {{ customer_address }}, {{ customer_city }} - {{ customer_zip }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Items Table -->
+      <table>
+        <thead>
+          <tr>
+            <th style="width:4%;">#</th>
+            <th style="width:35%;">Product</th>
+            <th style="width:12%;">SKU</th>
+            <th style="width:8%;">Unit</th>
+            <th style="width:14%;">Unit Price</th>
+            <th style="width:8%;">Qty</th>
+            <th style="width:16%;">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="center">{{ forloop.counter }}</td>
+            <td><strong>{{ item.product_name }}</strong></td>
+            <td>{{ item.sku }}</td>
+            <td>{{ item.unit }}</td>
+            <td class="num">&#8377;{{ item.unit_price|floatformat:2 }}</td>
+            <td class="center">{{ item.quantity }}</td>
+            <td class="num">&#8377;{{ item.total_price|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="totals-wrap">
+        <div class="totals-section">
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>&#8377;{{ subtotal|floatformat:2 }}</span>
+          </div>
+
+          {% if cgst_percentage > 0 %}
+          <div class="totals-row">
+            <span>CGST ({{ cgst_percentage|floatformat:1 }}%):</span>
+            <span>&#8377;{{ cgst_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if sgst_percentage > 0 %}
+          <div class="totals-row">
+            <span>SGST ({{ sgst_percentage|floatformat:1 }}%):</span>
+            <span>&#8377;{{ sgst_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if discount_amount > 0 %}
+          <div class="totals-row">
+            <span>Discount:</span>
+            <span>-&#8377;{{ discount_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if transport_charges > 0 %}
+          <div class="totals-row">
+            <span>Transport Charges:</span>
+            <span>&#8377;{{ transport_charges|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if labour_charges > 0 %}
+          <div class="totals-row">
+            <span>Labour Charges:</span>
+            <span>&#8377;{{ labour_charges|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          <div class="totals-row grand-total">
+            <span>TOTAL:</span>
+            <span>&#8377;{{ total_amount|floatformat:2 }}</span>
+          </div>
+
+          {% if amount_paid > 0 %}
+          <div class="totals-row paid-row">
+            <span>Amount Paid:</span>
+            <span>&#8377;{{ amount_paid|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+
+          {% if remaining_amount > 0 %}
+          <div class="totals-row remaining-row">
+            <span>Remaining:</span>
+            <span>&#8377;{{ remaining_amount|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Mix Payment Breakdown -->
+      {% if payment_method == 'mix' and online_amount > 0 %}
+      <div class="payment-box">
+        <h3>Payment Breakdown (Mix)</h3>
+        <div class="payment-box-row">
+          <span>Online:</span>
+          <span>&#8377;{{ online_amount|floatformat:2 }}</span>
+        </div>
+        <div class="payment-box-row">
+          <span>Offline / Cash:</span>
+          <span>&#8377;{{ offline_amount|floatformat:2 }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Signature -->
+      <div class="signature">
+        <p>inventa by</p>
+        <p>IMR Tech Solutions</p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        &copy; {{ year }} <strong>inventa | IMRTS</strong> &nbsp;|&nbsp; All rights reserved. &nbsp;|&nbsp;
+        <strong>inventa</strong> by <strong>IMR Tech Solutions</strong>
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Invoice - {{ invoice_number }}</title>
+    <style>
+      @page { size: A4; margin: 0.5cm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Arial", sans-serif; font-size: 11px; color: #000; padding: 15px; }
+      .container { max-width: 210mm; margin: 0 auto; }
+
+      /* Header */
+      .header { border: 1px solid #000; padding: 15px; margin-bottom: 10px; }
+      .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+      .company-logo { width: 120px; height: 80px; margin-bottom: 10px; object-fit: contain; }
+      .company-info p { margin: 2px 0; line-height: 1.4; }
+      .invoice-title { text-align: right; font-size: 22px; font-weight: bold; color: #000; }
+      .header-details {
+        border-top: 1px solid #000; padding-top: 10px;
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      }
+      .header-details div { font-size: 10px; }
+      .header-details strong { display: inline-block; min-width: 80px; }
+
+      /* Info Section */
+      .info-section { border: 1px solid #000; padding: 10px; margin-bottom: 15px; }
+      .info-section h3 { font-size: 12px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+      .info-section p { margin: 3px 0; line-height: 1.4; }
+
+      /* Table */
+      table { width: 100%; border-collapse: collapse; margin-bottom: 15px; border: 1px solid #000; }
+      table th, table td { border: 1px solid #000; padding: 5px 4px; text-align: left; font-size: 9px; }
+      table th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+      td.num { text-align: right; }
+      td.center { text-align: center; }
+
+      /* Totals */
+      .totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 15px; }
+      .totals-section { min-width: 260px; border: 1px solid #000; padding: 10px; }
+      .totals-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; border-bottom: 1px solid #eee; }
+      .totals-row:last-child { border-bottom: none; }
+      .totals-row.grand-total { border-top: 2px solid #000; border-bottom: none; font-weight: bold; font-size: 13px; padding-top: 8px; margin-top: 4px; }
+
+      /* Signature */
+      .signature { text-align: right; margin-top: 40px; padding-top: 10px; border-top: 1px solid #000; }
+      .signature p { font-size: 10px; font-weight: bold; }
+
+      /* Footer */
+      .footer { margin-top: 20px; text-align: center; font-size: 9px; color: #666; border-top: 1px solid #000; padding-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <div class="company-info">
+            <img src="../../media/default/default.png" alt="Company Logo" class="company-logo" />
+            <p><strong>INVENTA</strong></p>
+          </div>
+          <div class="invoice-title">VENDOR STOCK INVOICE</div>
+        </div>
+        <div class="header-details">
+          <div><strong>Invoice #:</strong> {{ invoice_number }}</div>
+          <div><strong>Date:</strong> {{ date }}</div>
+          <div><strong>Prepared by:</strong> {{ user_name }}</div>
+        </div>
+      </div>
+
+      <!-- Vendor Info -->
+      <div class="info-section">
+        <h3>Vendor Information</h3>
+        <p><strong>Name:</strong> {{ vendor_name }}</p>
+        <p><strong>Email:</strong> {{ vendor_email|default:"N/A" }}</p>
+        <p><strong>Phone:</strong> {{ vendor_contact|default:"N/A" }}</p>
+        {% if vendor_address and vendor_address != 'N/A' %}
+        <p><strong>Address:</strong> {{ vendor_address }}</p>
+        {% endif %}
+        <p><strong>GST:</strong> {{ vendor_gst|default:"N/A" }}</p>
+      </div>
+
+      <!-- Items Table -->
+      <table>
+        <thead>
+          <tr>
+            <th style="width:4%;">#</th>
+            <th style="width:28%;">Product</th>
+            <th style="width:8%;">Unit</th>
+            <th style="width:12%;">Price</th>
+            <th style="width:7%;">Qty</th>
+            <th style="width:12%;">CGST</th>
+            <th style="width:12%;">SGST</th>
+            <th style="width:10%;">MFG Date</th>
+            <th style="width:12%;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="center">{{ forloop.counter }}</td>
+            <td><strong>{{ item.product_name }}</strong></td>
+            <td class="center">{{ item.unit }}</td>
+            <td class="num">&#8377;{{ item.purchase_price|floatformat:2 }}</td>
+            <td class="center">{{ item.quantity }}</td>
+            <td class="num">
+              {% if item.cgst_percentage > 0 %}
+                {{ item.cgst_percentage|floatformat:1 }}% = &#8377;{{ item.cgst_amount|floatformat:2 }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td class="num">
+              {% if item.sgst_percentage > 0 %}
+                {{ item.sgst_percentage|floatformat:1 }}% = &#8377;{{ item.sgst_amount|floatformat:2 }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td class="center">{{ item.mfg_date|default:"N/A" }}</td>
+            <td class="num">&#8377;{{ item.total_price|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="totals-wrap">
+        <div class="totals-section">
+          <div class="totals-row">
+            <span>Subtotal:</span>
+            <span>&#8377;{{ subtotal|floatformat:2 }}</span>
+          </div>
+          {% if total_cgst > 0 %}
+          <div class="totals-row">
+            <span>CGST:</span>
+            <span>&#8377;{{ total_cgst|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% if total_sgst > 0 %}
+          <div class="totals-row">
+            <span>SGST:</span>
+            <span>&#8377;{{ total_sgst|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          <div class="totals-row grand-total">
+            <span>GRAND TOTAL:</span>
+            <span>&#8377;{{ grand_total|floatformat:2 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signature -->
+      <div class="signature">
+        <p>inventa by</p>
+        <p>IMR Tech Solutions</p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        &copy; {{ year }} <strong>inventa | IMRTS</strong> &nbsp;|&nbsp; All rights reserved.
+        &nbsp;|&nbsp; <strong>inventa</strong> by <strong>IMR Tech Solutions</strong>
+      </div>
+
+    </div>
+  </body>
+</html>

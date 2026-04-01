@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py makemigrations vendors transport broker)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py check)",
+      "Bash(python manage.py makemigrations inventory)",
+      "Bash(npx tsc:*)",
+      "Bash(python manage.py makemigrations products posorders)",
+      "Bash(python manage.py makemigrations inventory --name=\"add_cgst_sgst_percentage_to_stockentry\")",
+      "Bash(python manage.py migrate inventory)",
+      "Bash(grep -E \"\\\\.\\(py|txt\\)$\")"
+    ]
+  }
+}

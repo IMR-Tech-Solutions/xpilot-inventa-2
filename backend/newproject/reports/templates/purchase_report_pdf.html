@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Purchase Report - {{ current_date|date:"Y-m-d" }}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0.5cm;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Arial", sans-serif;
+        font-size: 11px;
+        color: #000;
+        padding: 15px;
+      }
+      .container {
+        max-width: 210mm;
+        margin: 0 auto;
+      }
+
+      /* Header */
+      .header {
+        border: 1px solid #000;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+      }
+      .company-info {
+        flex: 1;
+      }
+      .company-logo {
+        width: 120px;
+        height: 80px;
+        margin-bottom: 10px;
+        object-fit: contain;
+      }
+      .company-info p {
+        margin: 2px 0;
+        line-height: 1.4;
+      }
+      .invoice-title {
+        text-align: right;
+        font-size: 22px;
+        font-weight: bold;
+        color: #000;
+      }
+      .header-details {
+        border-top: 1px solid #000;
+        padding-top: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .header-details div {
+        font-size: 10px;
+      }
+      .header-details strong {
+        display: inline-block;
+        min-width: 100px;
+      }
+
+      /* Info Section */
+      .info-section {
+        border: 1px solid #000;
+        padding: 10px;
+        margin-bottom: 15px;
+      }
+      .info-section h3 {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #000;
+        padding-bottom: 5px;
+      }
+      .info-section p {
+        margin: 3px 0;
+        line-height: 1.4;
+      }
+
+      /* Summary Cards */
+      .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .summary-card {
+        border: 1px solid #000;
+        padding: 10px;
+        text-align: center;
+      }
+      .summary-card h4 {
+        font-size: 10px;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+      .summary-card .value {
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+        border: 1px solid #000;
+      }
+      table th,
+      table td {
+        border: 1px solid #000;
+        padding: 6px 4px;
+        text-align: left;
+        font-size: 9px;
+      }
+      table th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-align: center;
+      }
+      table tbody tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      .no-data {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 20px;
+      }
+
+      /* Signature */
+      .signature {
+        clear: both;
+        text-align: right;
+        margin-top: 40px;
+        padding-top: 10px;
+        border-top: 1px solid #000;
+      }
+      .signature p {
+        font-size: 10px;
+        font-weight: bold;
+      }
+
+      /* Footer */
+      .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 9px;
+        color: #666;
+        border-top: 1px solid #000;
+        padding-top: 10px;
+      }
+
+      @media print {
+        .info-section,
+        table {
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <div class="company-info">
+            <img
+              src="../../media/default/default.png"
+              alt="Company Logo"
+              class="company-logo"
+            />
+            <p><strong>Purchase Report</strong></p>
+          </div>
+          <div class="invoice-title">PURCHASE REPORT</div>
+        </div>
+        <div class="header-details">
+          <div>
+            <strong>Generated on:</strong> {{ current_date|date:"F d, Y g:i A"
+            }}
+          </div>
+          <div>
+            <strong>Period:</strong>
+            {% if data.date_range.start_date %}{{
+            data.date_range.start_date|date:"M d, Y" }}{% else %}All Time{%
+            endif %} — {% if data.date_range.end_date %}{{
+            data.date_range.end_date|date:"M d, Y" }}{% else %}Present{% endif
+            %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Filters -->
+      <div class="info-section">
+        <h3>Report Filters</h3>
+        <p><strong>Vendor:</strong> {{ data.vendor.name }}</p>
+        {% if data.vendor.contact_person %}
+        <p><strong>Contact Person:</strong> {{ data.vendor.contact_person }}</p>
+        {% endif %}
+        <p><strong>Filter Type:</strong> {{ data.filter_type|capfirst }}</p>
+        {% if data.date_range.start_date %}
+        <p>
+          <strong>From:</strong> {{ data.date_range.start_date|date:"M d, Y" }}
+        </p>
+        {% endif %} {% if data.date_range.end_date %}
+        <p><strong>To:</strong> {{ data.date_range.end_date|date:"M d, Y" }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <h4>Total Quantity</h4>
+          <div class="value">
+            {{ data.summary.total_quantity_purchased|floatformat:0 }}
+          </div>
+        </div>
+        <div class="summary-card">
+          <h4>Total Amount</h4>
+          <div class="value">
+            ₹{{ data.summary.total_amount_spent|floatformat:2 }}
+          </div>
+        </div>
+        <div class="summary-card">
+          <h4>Total Batches</h4>
+          <div class="value">{{ data.summary.total_batches }}</div>
+        </div>
+        <div class="summary-card">
+          <h4>Avg. Batch Value</h4>
+          <div class="value">
+            ₹{{ data.summary.average_batch_value|floatformat:2 }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Purchased -->
+      {% if data.products %}
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Product Name</th>
+            <th>Vendor</th>
+            <th>Total Quantity</th>
+            <th>Total Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in data.products %}
+          <tr>
+            <td style="text-align: center">{{ forloop.counter }}</td>
+            <td><strong>{{ product.product_name }}</strong></td>
+            <td>{{ product.vendor_name }}</td>
+            <td style="text-align: right">
+              {{ product.total_quantity|floatformat:0 }}
+            </td>
+            <td style="text-align: right">
+              ₹{{ product.total_amount|floatformat:2 }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="no-data">No products found for the selected criteria.</div>
+      {% endif %}
+
+      <!-- Signature -->
+      <div class="signature">
+        <p>inventa by</p>
+        <p>IMR Tech Solutions</p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        © {{ current_date|date:"Y" }} <strong>inventa | IMRTS</strong> | All
+        rights reserved. &nbsp;|&nbsp; <strong>inventa</strong> by
+        <strong>IMR Tech Solutions</strong>
+      </div>
+    </div>
+  </body>
+</html>
