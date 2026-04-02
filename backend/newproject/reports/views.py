@@ -495,68 +495,88 @@ class AdminBrokerReportView(APIView):
 
 
 class UserFranchiseReportView(APIView):
-    """Manager: stock they fulfilled and sold to franchise owners, with date/franchise filter."""
+    """Manager: stock they fulfilled and sold to franchise owners, grouped by order."""
     permission_classes = [IsAuthenticated, HasModuleAccess]
     required_permission = "view-franchise-report"
 
     def get(self, request):
-        qs = ShopOrderItem.objects.filter(
-            fulfilled_by_manager=request.user,
-            fulfilled_quantity__isnull=False,
-        )
-
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         shop_owner_id = request.query_params.get('shop_owner_id')
-        if start_date:
-            qs = qs.filter(order__created_at__date__gte=start_date)
-        if end_date:
-            qs = qs.filter(order__created_at__date__lte=end_date)
-        if shop_owner_id:
-            qs = qs.filter(order__shop_owner__id=shop_owner_id)
 
-        qs = qs.select_related(
-            'order__shop_owner', 'product'
-        ).order_by('-order__created_at')
+        # Get distinct orders where this manager fulfilled at least one item
+        orders_qs = ShopOwnerOrders.objects.filter(
+            order_items__fulfilled_by_manager=request.user,
+            order_items__fulfilled_quantity__isnull=False,
+        ).distinct().select_related('shop_owner').prefetch_related(
+            'order_items__product'
+        ).order_by('-created_at')
+
+        if start_date:
+            orders_qs = orders_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            orders_qs = orders_qs.filter(created_at__date__lte=end_date)
+        if shop_owner_id:
+            orders_qs = orders_qs.filter(shop_owner__id=shop_owner_id)
 
         total_qty = 0
         total_revenue = 0.0
-        order_ids = set()
-        items = []
+        total_items = 0
         status_counts = {'completed': 0, 'pending': 0, 'cancelled': 0}
+        orders = []
 
-        for item in qs:
-            line_total = float(item.actual_price or 0) * (item.fulfilled_quantity or 0)
-            total_qty += item.fulfilled_quantity or 0
-            total_revenue += line_total
-            order_ids.add(item.order.id)
+        for order in orders_qs:
+            # Only items this manager fulfilled within this order
+            my_items = [
+                i for i in order.order_items.all()
+                if i.fulfilled_by_manager_id == request.user.id
+                and i.fulfilled_quantity is not None
+            ]
+            if not my_items:
+                continue
 
-            order_status = item.order.status
-            if order_status in status_counts:
-                status_counts[order_status] += 1
+            order_qty = sum(i.fulfilled_quantity or 0 for i in my_items)
+            order_revenue = sum(
+                float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                for i in my_items
+            )
+            total_qty += order_qty
+            total_revenue += order_revenue
+            total_items += len(my_items)
 
-            items.append({
-                'id': item.id,
-                'order_number': item.order.order_number,
-                'order_id': item.order.id,
-                'shop_owner_name': f"{item.order.shop_owner.first_name} {item.order.shop_owner.last_name}",
-                'shop_owner_business': item.order.shop_owner.business_name or '',
-                'shop_owner_id': item.order.shop_owner.id,
-                'product_name': item.product.product_name,
-                'product_sku': item.product.sku_code,
-                'requested_quantity': item.requested_quantity,
-                'fulfilled_quantity': item.fulfilled_quantity,
-                'actual_price': float(item.actual_price or 0),
-                'line_total': line_total,
-                'order_status': item.order.status,
-                'payment_status': item.order.payment_status,
-                'payment_method': item.order.payment_method,
-                'amount_paid': float(item.order.amount_paid),
-                'remaining_amount': float(item.order.remaining_amount),
-                'order_date': item.order.created_at,
+            if order.status in status_counts:
+                status_counts[order.status] += 1
+
+            items = []
+            for i in my_items:
+                line_total = float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                items.append({
+                    'id': i.id,
+                    'product_name': i.product.product_name,
+                    'product_sku': i.product.sku_code,
+                    'requested_quantity': i.requested_quantity,
+                    'fulfilled_quantity': i.fulfilled_quantity,
+                    'actual_price': float(i.actual_price or 0),
+                    'line_total': line_total,
+                })
+
+            orders.append({
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}",
+                'shop_owner_business': order.shop_owner.business_name or '',
+                'shop_owner_id': order.shop_owner.id,
+                'order_status': order.status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method,
+                'amount_paid': float(order.amount_paid),
+                'remaining_amount': float(order.remaining_amount),
+                'total_qty': order_qty,
+                'total_line_total': order_revenue,
+                'order_date': order.created_at,
+                'items': items,
             })
 
-        # Franchise (shop owners) this manager has fulfilled for — for dropdown
         franchises = list(
             UserMaster.objects
             .filter(shop_orders__order_items__fulfilled_by_manager=request.user)
@@ -566,85 +586,104 @@ class UserFranchiseReportView(APIView):
 
         return Response({
             'summary': {
-                'total_items': len(items),
-                'total_orders': len(order_ids),
+                'total_orders': len(orders),
+                'total_items': total_items,
                 'total_qty': total_qty,
                 'total_revenue': total_revenue,
                 'completed': status_counts['completed'],
                 'pending': status_counts['pending'],
                 'cancelled': status_counts['cancelled'],
             },
-            'items': items,
+            'orders': orders,
             'franchises': franchises,
         })
 
 
 class AdminFranchiseReportView(APIView):
-    """Admin: all franchise stock transactions system-wide, with date/manager/franchise filter."""
+    """Admin: all franchise stock transactions system-wide, grouped by order."""
     permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        qs = ShopOrderItem.objects.filter(
-            fulfilled_quantity__isnull=False,
-        ).select_related(
-            'order__shop_owner', 'fulfilled_by_manager', 'product'
-        )
-
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         manager_id = request.query_params.get('manager_id')
         shop_owner_id = request.query_params.get('shop_owner_id')
-        if start_date:
-            qs = qs.filter(order__created_at__date__gte=start_date)
-        if end_date:
-            qs = qs.filter(order__created_at__date__lte=end_date)
-        if manager_id:
-            qs = qs.filter(fulfilled_by_manager__id=manager_id)
-        if shop_owner_id:
-            qs = qs.filter(order__shop_owner__id=shop_owner_id)
 
-        qs = qs.order_by('-order__created_at')
+        orders_qs = ShopOwnerOrders.objects.filter(
+            order_items__fulfilled_quantity__isnull=False,
+        ).distinct().select_related('shop_owner').prefetch_related(
+            'order_items__product',
+            'order_items__fulfilled_by_manager',
+        ).order_by('-created_at')
+
+        if start_date:
+            orders_qs = orders_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            orders_qs = orders_qs.filter(created_at__date__lte=end_date)
+        if shop_owner_id:
+            orders_qs = orders_qs.filter(shop_owner__id=shop_owner_id)
+        if manager_id:
+            orders_qs = orders_qs.filter(order_items__fulfilled_by_manager__id=manager_id)
 
         total_qty = 0
         total_revenue = 0.0
-        order_ids = set()
+        total_items = 0
         status_counts = {'completed': 0, 'pending': 0, 'cancelled': 0}
-        items = []
+        orders = []
 
-        for item in qs:
-            line_total = float(item.actual_price or 0) * (item.fulfilled_quantity or 0)
-            total_qty += item.fulfilled_quantity or 0
-            total_revenue += line_total
-            order_ids.add(item.order.id)
+        for order in orders_qs:
+            # All fulfilled items in this order (optionally scoped to one manager)
+            fulfilled_items = [
+                i for i in order.order_items.all()
+                if i.fulfilled_quantity is not None
+                and (not manager_id or (i.fulfilled_by_manager_id == int(manager_id)))
+            ]
+            if not fulfilled_items:
+                continue
 
-            order_status = item.order.status
-            if order_status in status_counts:
-                status_counts[order_status] += 1
+            order_qty = sum(i.fulfilled_quantity or 0 for i in fulfilled_items)
+            order_revenue = sum(
+                float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                for i in fulfilled_items
+            )
+            total_qty += order_qty
+            total_revenue += order_revenue
+            total_items += len(fulfilled_items)
 
-            items.append({
-                'id': item.id,
-                'order_number': item.order.order_number,
-                'order_id': item.order.id,
-                'fulfilled_by': f"{item.fulfilled_by_manager.first_name} {item.fulfilled_by_manager.last_name}" if item.fulfilled_by_manager else 'N/A',
-                'fulfilled_by_id': item.fulfilled_by_manager.id if item.fulfilled_by_manager else None,
-                'shop_owner_name': f"{item.order.shop_owner.first_name} {item.order.shop_owner.last_name}",
-                'shop_owner_business': item.order.shop_owner.business_name or '',
-                'shop_owner_id': item.order.shop_owner.id,
-                'product_name': item.product.product_name,
-                'product_sku': item.product.sku_code,
-                'requested_quantity': item.requested_quantity,
-                'fulfilled_quantity': item.fulfilled_quantity,
-                'actual_price': float(item.actual_price or 0),
-                'line_total': line_total,
-                'order_status': item.order.status,
-                'payment_status': item.order.payment_status,
-                'payment_method': item.order.payment_method,
-                'amount_paid': float(item.order.amount_paid),
-                'remaining_amount': float(item.order.remaining_amount),
-                'order_date': item.order.created_at,
+            if order.status in status_counts:
+                status_counts[order.status] += 1
+
+            items = []
+            for i in fulfilled_items:
+                line_total = float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                items.append({
+                    'id': i.id,
+                    'product_name': i.product.product_name,
+                    'product_sku': i.product.sku_code,
+                    'fulfilled_by': f"{i.fulfilled_by_manager.first_name} {i.fulfilled_by_manager.last_name}" if i.fulfilled_by_manager else 'N/A',
+                    'requested_quantity': i.requested_quantity,
+                    'fulfilled_quantity': i.fulfilled_quantity,
+                    'actual_price': float(i.actual_price or 0),
+                    'line_total': line_total,
+                })
+
+            orders.append({
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}",
+                'shop_owner_business': order.shop_owner.business_name or '',
+                'shop_owner_id': order.shop_owner.id,
+                'order_status': order.status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method,
+                'amount_paid': float(order.amount_paid),
+                'remaining_amount': float(order.remaining_amount),
+                'total_qty': order_qty,
+                'total_line_total': order_revenue,
+                'order_date': order.created_at,
+                'items': items,
             })
 
-        # Managers who have fulfilled orders
         managers = list(
             UserMaster.objects
             .filter(fulfilled_shop_orders__fulfilled_quantity__isnull=False)
@@ -652,7 +691,6 @@ class AdminFranchiseReportView(APIView):
             .values('id', 'first_name', 'last_name', 'business_name')
         )
 
-        # Franchise owners who have received stock
         franchises = list(
             UserMaster.objects
             .filter(shop_orders__order_items__fulfilled_quantity__isnull=False)
@@ -662,15 +700,15 @@ class AdminFranchiseReportView(APIView):
 
         return Response({
             'summary': {
-                'total_items': len(items),
-                'total_orders': len(order_ids),
+                'total_orders': len(orders),
+                'total_items': total_items,
                 'total_qty': total_qty,
                 'total_revenue': total_revenue,
                 'completed': status_counts['completed'],
                 'pending': status_counts['pending'],
                 'cancelled': status_counts['cancelled'],
             },
-            'items': items,
+            'orders': orders,
             'managers': managers,
             'franchises': franchises,
         })

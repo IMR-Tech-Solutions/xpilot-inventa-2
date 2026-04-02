@@ -2,30 +2,36 @@ import { useState, useEffect } from "react";
 import { getUserFranchiseReportService } from "./franchisereportservice";
 import PageMeta from "../../../components/common/PageMeta";
 
-interface FranchiseItem {
+interface FranchiseOrderItem {
   id: number;
-  order_number: string;
-  order_id: number;
-  shop_owner_name: string;
-  shop_owner_business: string;
-  shop_owner_id: number;
   product_name: string;
   product_sku: string;
   requested_quantity: number;
   fulfilled_quantity: number;
   actual_price: number;
   line_total: number;
+}
+
+interface FranchiseOrder {
+  order_id: number;
+  order_number: string;
+  shop_owner_name: string;
+  shop_owner_business: string;
+  shop_owner_id: number;
   order_status: string;
   payment_status: string;
   payment_method: string | null;
   amount_paid: number;
   remaining_amount: number;
+  total_qty: number;
+  total_line_total: number;
   order_date: string;
+  items: FranchiseOrderItem[];
 }
 
 interface Summary {
-  total_items: number;
   total_orders: number;
+  total_items: number;
   total_qty: number;
   total_revenue: number;
   completed: number;
@@ -54,13 +60,13 @@ const statusColors: Record<string, string> = {
 
 export default function FranchiseReport() {
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [items, setItems] = useState<FranchiseItem[]>([]);
+  const [orders, setOrders] = useState<FranchiseOrder[]>([]);
   const [franchises, setFranchises] = useState<FranchiseOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number | "">("");
-  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
   const fetchReport = async (params?: {
     start_date?: string;
@@ -71,7 +77,7 @@ export default function FranchiseReport() {
     try {
       const data = await getUserFranchiseReportService(params);
       setSummary(data.summary);
-      setItems(data.items);
+      setOrders(data.orders);
       if (data.franchises) setFranchises(data.franchises);
     } catch (error) {
       console.error("Error fetching franchise report:", error);
@@ -107,7 +113,6 @@ export default function FranchiseReport() {
       />
 
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-        {/* Header */}
         <div className="mb-8">
           <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
             Franchise Report
@@ -174,7 +179,7 @@ export default function FranchiseReport() {
           </div>
         ) : (
           <>
-            {/* Summary Cards */}
+            {/* Summary */}
             {summary && (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
@@ -183,7 +188,7 @@ export default function FranchiseReport() {
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total_orders}</p>
                   </div>
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Items Fulfilled</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Items Fulfilled</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{summary.total_items}</p>
                   </div>
                   <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -211,8 +216,8 @@ export default function FranchiseReport() {
               </>
             )}
 
-            {/* Items Table */}
-            {items.length === 0 ? (
+            {/* Orders Table */}
+            {orders.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 No franchise orders found for the selected filters.
               </div>
@@ -223,90 +228,100 @@ export default function FranchiseReport() {
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order #</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Franchise</th>
-                      <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
-                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Requested</th>
-                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fulfilled</th>
-                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price/Unit</th>
-                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Line Total</th>
+                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Qty</th>
+                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Value</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order Status</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment</th>
+                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Paid</th>
+                      <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Remaining</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                       <th className="py-3 px-3"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {items.map((item) => (
+                    {orders.map((order) => (
                       <>
                         <tr
-                          key={item.id}
+                          key={order.order_id}
                           className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                         >
                           <td className="py-3 px-3 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                            {item.order_number}
+                            {order.order_number}
                           </td>
                           <td className="py-3 px-3">
-                            <div className="text-gray-900 dark:text-gray-100">{item.shop_owner_name}</div>
-                            {item.shop_owner_business && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{item.shop_owner_business}</div>
+                            <div className="text-gray-900 dark:text-gray-100">{order.shop_owner_name}</div>
+                            {order.shop_owner_business && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{order.shop_owner_business}</div>
                             )}
                           </td>
-                          <td className="py-3 px-3">
-                            <div className="text-gray-900 dark:text-gray-100">{item.product_name}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{item.product_sku}</div>
-                          </td>
-                          <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">{item.requested_quantity}</td>
-                          <td className="py-3 px-3 text-right font-medium text-gray-900 dark:text-gray-100">{item.fulfilled_quantity}</td>
-                          <td className="py-3 px-3 text-right text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                            ₹{item.actual_price.toLocaleString("en-IN")}
+                          <td className="py-3 px-3 text-right font-medium text-gray-900 dark:text-gray-100">
+                            {order.total_qty}
                           </td>
                           <td className="py-3 px-3 text-right font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
-                            ₹{item.line_total.toLocaleString("en-IN")}
+                            ₹{order.total_line_total.toLocaleString("en-IN")}
                           </td>
                           <td className="py-3 px-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[item.order_status] || "bg-gray-100 text-gray-700"}`}>
-                              {item.order_status.replace(/_/g, " ")}
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.order_status] || "bg-gray-100 text-gray-700"}`}>
+                              {order.order_status.replace(/_/g, " ")}
                             </span>
                           </td>
                           <td className="py-3 px-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[item.payment_status] || "bg-gray-100 text-gray-700"}`}>
-                              {item.payment_status}
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[order.payment_status] || "bg-gray-100 text-gray-700"}`}>
+                              {order.payment_status}
                             </span>
+                            {order.payment_method && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 capitalize">{order.payment_method}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right text-green-600 dark:text-green-400 whitespace-nowrap">
+                            ₹{order.amount_paid.toLocaleString("en-IN")}
+                          </td>
+                          <td className="py-3 px-3 text-right text-red-600 dark:text-red-400 whitespace-nowrap">
+                            ₹{order.remaining_amount.toLocaleString("en-IN")}
                           </td>
                           <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                            {new Date(item.order_date).toLocaleDateString("en-IN")}
+                            {new Date(order.order_date).toLocaleDateString("en-IN")}
                           </td>
                           <td className="py-3 px-3">
                             <button
-                              onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+                              onClick={() => setExpandedOrder(expandedOrder === order.order_id ? null : order.order_id)}
                               className="text-xs text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
                             >
-                              {expandedItem === item.id ? "Hide" : "Payment"}
+                              {expandedOrder === order.order_id ? "▲ Hide" : "▼ Products"}
                             </button>
                           </td>
                         </tr>
-                        {expandedItem === item.id && (
-                          <tr key={`${item.id}-payment`} className="bg-gray-50 dark:bg-gray-800/30">
-                            <td colSpan={11} className="px-6 py-3">
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                                <div>
-                                  <span className="text-gray-500 dark:text-gray-400">Payment Method</span>
-                                  <p className="font-medium text-gray-800 dark:text-gray-200 capitalize">
-                                    {item.payment_method || "—"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500 dark:text-gray-400">Amount Paid</span>
-                                  <p className="font-medium text-green-600 dark:text-green-400">
-                                    ₹{item.amount_paid.toLocaleString("en-IN")}
-                                  </p>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500 dark:text-gray-400">Remaining</span>
-                                  <p className="font-medium text-red-600 dark:text-red-400">
-                                    ₹{item.remaining_amount.toLocaleString("en-IN")}
-                                  </p>
-                                </div>
-                              </div>
+                        {expandedOrder === order.order_id && (
+                          <tr key={`${order.order_id}-items`} className="bg-blue-50/40 dark:bg-blue-900/10">
+                            <td colSpan={10} className="px-8 py-3">
+                              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                Products in this order ({order.items.length})
+                              </p>
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                                    <th className="text-left py-1.5 pr-4">Product</th>
+                                    <th className="text-right py-1.5 pr-4">Requested</th>
+                                    <th className="text-right py-1.5 pr-4">Fulfilled</th>
+                                    <th className="text-right py-1.5 pr-4">Price/Unit</th>
+                                    <th className="text-right py-1.5">Line Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                  {order.items.map((item) => (
+                                    <tr key={item.id}>
+                                      <td className="py-1.5 pr-4">
+                                        <div className="text-gray-800 dark:text-gray-200">{item.product_name}</div>
+                                        <div className="text-gray-500 dark:text-gray-400">{item.product_sku}</div>
+                                      </td>
+                                      <td className="py-1.5 pr-4 text-right text-gray-500 dark:text-gray-400">{item.requested_quantity}</td>
+                                      <td className="py-1.5 pr-4 text-right font-medium text-gray-800 dark:text-gray-200">{item.fulfilled_quantity}</td>
+                                      <td className="py-1.5 pr-4 text-right text-gray-700 dark:text-gray-300">₹{item.actual_price.toLocaleString("en-IN")}</td>
+                                      <td className="py-1.5 text-right font-semibold text-green-600 dark:text-green-400">₹{item.line_total.toLocaleString("en-IN")}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </td>
                           </tr>
                         )}

@@ -1,30 +1,36 @@
 import { useState, useEffect } from "react";
-import { Table, Drawer, Tag, Statistic, Select } from "antd";
+import { Table, Tag, Statistic, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { getAdminFranchiseReportService } from "./adminfranchisereportservice";
 import PageMeta from "../../../components/common/PageMeta";
 
-interface FranchiseItem {
+interface FranchiseOrderItem {
   id: number;
-  order_number: string;
-  order_id: number;
-  fulfilled_by: string;
-  fulfilled_by_id: number | null;
-  shop_owner_name: string;
-  shop_owner_business: string;
-  shop_owner_id: number;
   product_name: string;
   product_sku: string;
+  fulfilled_by: string;
+  fulfilled_by_id: number | null;
   requested_quantity: number;
   fulfilled_quantity: number;
   actual_price: number;
   line_total: number;
+}
+
+interface FranchiseOrder {
+  order_id: number;
+  order_number: string;
+  shop_owner_name: string;
+  shop_owner_business: string;
+  shop_owner_id: number;
   order_status: string;
   payment_status: string;
   payment_method: string | null;
   amount_paid: number;
   remaining_amount: number;
+  total_qty: number;
+  total_line_total: number;
   order_date: string;
+  items: FranchiseOrderItem[];
 }
 
 interface Summary {
@@ -60,9 +66,60 @@ const paymentStatusColor: Record<string, string> = {
   partial: "orange",
 };
 
+const itemColumns: ColumnsType<FranchiseOrderItem> = [
+  {
+    title: "Product",
+    key: "product",
+    render: (_, row) => (
+      <div>
+        <div className="text-sm text-gray-900 dark:text-gray-100">{row.product_name}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{row.product_sku}</div>
+      </div>
+    ),
+  },
+  {
+    title: "Fulfilled By",
+    dataIndex: "fulfilled_by",
+    key: "fulfilled_by",
+    render: (val) => <span className="text-sm text-gray-800 dark:text-gray-200">{val || "—"}</span>,
+  },
+  {
+    title: "Requested",
+    dataIndex: "requested_quantity",
+    key: "requested_quantity",
+    align: "right",
+    render: (val) => <span className="text-gray-500">{val}</span>,
+  },
+  {
+    title: "Fulfilled",
+    dataIndex: "fulfilled_quantity",
+    key: "fulfilled_quantity",
+    align: "right",
+    render: (val) => <span className="font-medium">{val}</span>,
+  },
+  {
+    title: "Price/Unit",
+    dataIndex: "actual_price",
+    key: "actual_price",
+    align: "right",
+    render: (val) => `₹${Number(val).toLocaleString("en-IN")}`,
+  },
+  {
+    title: "Line Total",
+    dataIndex: "line_total",
+    key: "line_total",
+    align: "right",
+    render: (val) => (
+      <span className="font-semibold text-green-600 dark:text-green-400">
+        ₹{Number(val).toLocaleString("en-IN")}
+      </span>
+    ),
+  },
+];
+
 export default function AdminFranchiseReport() {
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [items, setItems] = useState<FranchiseItem[]>([]);
+  const [orders, setOrders] = useState<FranchiseOrder[]>([]);
   const [managers, setManagers] = useState<UserOption[]>([]);
   const [franchises, setFranchises] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,7 +127,6 @@ export default function AdminFranchiseReport() {
   const [endDate, setEndDate] = useState("");
   const [selectedManagerId, setSelectedManagerId] = useState<number | undefined>(undefined);
   const [selectedFranchiseId, setSelectedFranchiseId] = useState<number | undefined>(undefined);
-  const [drawerItem, setDrawerItem] = useState<FranchiseItem | null>(null);
 
   const fetchReport = async (params?: {
     start_date?: string;
@@ -82,7 +138,7 @@ export default function AdminFranchiseReport() {
     try {
       const data = await getAdminFranchiseReportService(params);
       setSummary(data.summary);
-      setItems(data.items);
+      setOrders(data.orders || []);
       if (data.managers) setManagers(data.managers);
       if (data.franchises) setFranchises(data.franchises);
     } catch (error) {
@@ -118,18 +174,12 @@ export default function AdminFranchiseReport() {
     fetchReport();
   };
 
-  const columns: ColumnsType<FranchiseItem> = [
+  const columns: ColumnsType<FranchiseOrder> = [
     {
       title: "Order #",
       dataIndex: "order_number",
       key: "order_number",
       render: (val) => <span className="font-medium text-gray-900 dark:text-gray-100">{val}</span>,
-    },
-    {
-      title: "Fulfilled By",
-      dataIndex: "fulfilled_by",
-      key: "fulfilled_by",
-      render: (val) => <span className="text-sm text-gray-800 dark:text-gray-200">{val}</span>,
     },
     {
       title: "Franchise",
@@ -144,40 +194,16 @@ export default function AdminFranchiseReport() {
       ),
     },
     {
-      title: "Product",
-      key: "product",
-      render: (_, row) => (
-        <div>
-          <div className="text-sm text-gray-900 dark:text-gray-100">{row.product_name}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">{row.product_sku}</div>
-        </div>
-      ),
-    },
-    {
-      title: "Requested",
-      dataIndex: "requested_quantity",
-      key: "requested_quantity",
-      align: "right",
-      render: (val) => <span className="text-gray-500">{val}</span>,
-    },
-    {
-      title: "Fulfilled",
-      dataIndex: "fulfilled_quantity",
-      key: "fulfilled_quantity",
+      title: "Total Qty",
+      dataIndex: "total_qty",
+      key: "total_qty",
       align: "right",
       render: (val) => <span className="font-medium">{val}</span>,
     },
     {
-      title: "Price/Unit",
-      dataIndex: "actual_price",
-      key: "actual_price",
-      align: "right",
-      render: (val) => `₹${Number(val).toLocaleString("en-IN")}`,
-    },
-    {
-      title: "Line Total",
-      dataIndex: "line_total",
-      key: "line_total",
+      title: "Total Value",
+      dataIndex: "total_line_total",
+      key: "total_line_total",
       align: "right",
       render: (val) => (
         <span className="font-semibold text-green-600 dark:text-green-400">
@@ -206,22 +232,32 @@ export default function AdminFranchiseReport() {
       ),
     },
     {
+      title: "Paid",
+      dataIndex: "amount_paid",
+      key: "amount_paid",
+      align: "right",
+      render: (val) => (
+        <span className="text-green-600 dark:text-green-400">
+          ₹{Number(val).toLocaleString("en-IN")}
+        </span>
+      ),
+    },
+    {
+      title: "Remaining",
+      dataIndex: "remaining_amount",
+      key: "remaining_amount",
+      align: "right",
+      render: (val) => (
+        <span className={Number(val) > 0 ? "text-red-500 dark:text-red-400" : "text-gray-400"}>
+          ₹{Number(val).toLocaleString("en-IN")}
+        </span>
+      ),
+    },
+    {
       title: "Date",
       dataIndex: "order_date",
       key: "order_date",
       render: (val) => new Date(val).toLocaleDateString("en-IN"),
-    },
-    {
-      title: "",
-      key: "action",
-      render: (_, row) => (
-        <button
-          onClick={() => setDrawerItem(row)}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          View
-        </button>
-      ),
     },
   ];
 
@@ -348,104 +384,35 @@ export default function AdminFranchiseReport() {
           </>
         )}
 
-        {/* Items Table */}
+        {/* Orders Table with Expandable Product Rows */}
         <Table
           columns={columns}
-          dataSource={items}
-          rowKey="id"
+          dataSource={orders}
+          rowKey="order_id"
           loading={loading}
           pagination={{ pageSize: 20, showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: "No franchise orders found." }}
+          expandable={{
+            expandedRowRender: (order) => (
+              <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  Products in {order.order_number}
+                </p>
+                <Table
+                  columns={itemColumns}
+                  dataSource={order.items}
+                  rowKey="id"
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: "max-content" }}
+                />
+              </div>
+            ),
+            rowExpandable: (order) => order.items && order.items.length > 0,
+          }}
         />
       </div>
-
-      {/* Detail Drawer */}
-      <Drawer
-        title={drawerItem ? `${drawerItem.order_number} — ${drawerItem.product_name}` : "Item Details"}
-        open={!!drawerItem}
-        onClose={() => setDrawerItem(null)}
-        width={520}
-      >
-        {drawerItem && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Product</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{drawerItem.product_name}</p>
-                <p className="text-xs text-gray-500">{drawerItem.product_sku}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Fulfilled By</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{drawerItem.fulfilled_by}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Franchise</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{drawerItem.shop_owner_name}</p>
-                {drawerItem.shop_owner_business && (
-                  <p className="text-xs text-gray-500">{drawerItem.shop_owner_business}</p>
-                )}
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Date</p>
-                <p className="text-gray-800 dark:text-gray-200">
-                  {new Date(drawerItem.order_date).toLocaleDateString("en-IN")}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Order Status</p>
-                <Tag color={orderStatusColor[drawerItem.order_status] || "default"} className="capitalize">
-                  {drawerItem.order_status.replace(/_/g, " ")}
-                </Tag>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Payment Status</p>
-                <Tag color={paymentStatusColor[drawerItem.payment_status] || "default"} className="capitalize">
-                  {drawerItem.payment_status}
-                </Tag>
-              </div>
-            </div>
-
-            {/* Quantity & Pricing */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2 text-sm">
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Quantity & Pricing</p>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Requested Qty</span>
-                <span>{drawerItem.requested_quantity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Fulfilled Qty</span>
-                <span className="font-medium">{drawerItem.fulfilled_quantity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Price per Unit</span>
-                <span>₹{drawerItem.actual_price.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between font-semibold border-t border-gray-100 dark:border-gray-700 pt-2 text-green-600 dark:text-green-400">
-                <span>Line Total</span>
-                <span>₹{drawerItem.line_total.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-
-            {/* Payment */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2 text-sm">
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Payment Details</p>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Method</span>
-                <span className="capitalize">{drawerItem.payment_method || "—"}</span>
-              </div>
-              <div className="flex justify-between text-green-600 dark:text-green-400">
-                <span>Amount Paid</span>
-                <span>₹{drawerItem.amount_paid.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between text-red-600 dark:text-red-400">
-                <span>Remaining</span>
-                <span>₹{drawerItem.remaining_amount.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </Drawer>
     </div>
   );
 }
