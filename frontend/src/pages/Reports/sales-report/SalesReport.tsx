@@ -36,6 +36,13 @@ interface Summary {
   cancelled: number;
 }
 
+interface CustomerOption {
+  id: number;
+  first_name: string;
+  last_name: string;
+  phone: string;
+}
+
 const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
@@ -54,17 +61,17 @@ export default function SalesReport() {
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | "">("");
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
-  const fetchReport = async () => {
+  const fetchReport = async (params?: { start_date?: string; end_date?: string; customer_id?: number }) => {
     setLoading(true);
     try {
-      const params: { start_date?: string; end_date?: string } = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
       const data = await getUserSalesReportService(params);
       setSummary(data.summary);
       setOrders(data.orders);
+      if (data.customers) setCustomers(data.customers);
     } catch (error) {
       console.error("Error fetching sales report:", error);
     } finally {
@@ -77,13 +84,18 @@ export default function SalesReport() {
   }, []);
 
   const handleFilter = () => {
-    fetchReport();
+    const params: { start_date?: string; end_date?: string; customer_id?: number } = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    if (selectedCustomerId !== "") params.customer_id = selectedCustomerId;
+    fetchReport(params);
   };
 
   const handleClear = () => {
     setStartDate("");
     setEndDate("");
-    setTimeout(() => fetchReport(), 0);
+    setSelectedCustomerId("");
+    fetchReport();
   };
 
   return (
@@ -123,6 +135,21 @@ export default function SalesReport() {
               onChange={(e) => setEndDate(e.target.value)}
               className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">Customer</label>
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => setSelectedCustomerId(e.target.value === "" ? "" : Number(e.target.value))}
+              className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
+            >
+              <option value="">All customers</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.first_name} {c.last_name} — {c.phone}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-end gap-2">
             <button

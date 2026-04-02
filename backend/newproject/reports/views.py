@@ -6,6 +6,7 @@ from django.db.models import Sum, Count, Q
 from accounts.premissions import IsAdminRole, HasModuleAccess
 from accounts.models import UserMaster
 from posorders.models import POSOrder
+from customers.models import Customer
 
 
 class UserSalesReportView(APIView):
@@ -18,10 +19,13 @@ class UserSalesReportView(APIView):
 
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
+        customer_id = request.query_params.get('customer_id')
         if start_date:
             qs = qs.filter(created_at__date__gte=start_date)
         if end_date:
             qs = qs.filter(created_at__date__lte=end_date)
+        if customer_id:
+            qs = qs.filter(customer__id=customer_id)
 
         agg = qs.aggregate(
             total_orders=Count('id'),
@@ -60,6 +64,14 @@ class UserSalesReportView(APIView):
                 'items': items,
             })
 
+        # Customers belonging to this user — for filter dropdown
+        customers = list(
+            Customer.objects
+            .filter(user=request.user)
+            .order_by('first_name')
+            .values('id', 'first_name', 'last_name', 'phone')
+        )
+
         return Response({
             'summary': {
                 'total_orders': agg['total_orders'] or 0,
@@ -71,6 +83,7 @@ class UserSalesReportView(APIView):
                 'cancelled': agg['cancelled'] or 0,
             },
             'orders': orders,
+            'customers': customers,
         })
 
 
