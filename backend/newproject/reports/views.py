@@ -7,6 +7,9 @@ from accounts.premissions import IsAdminRole, HasModuleAccess
 from accounts.models import UserMaster
 from posorders.models import POSOrder
 from customers.models import Customer
+from inventory.models import StockEntry
+from vendors.models import Vendor
+from broker.models import Broker
 
 
 class UserSalesReportView(APIView):
@@ -164,5 +167,327 @@ class AdminSalesReportView(APIView):
                 'cancelled': agg['cancelled'] or 0,
             },
             'orders': orders,
+            'users': users,
+        })
+
+
+class UserPurchaseReportView(APIView):
+    """Logged-in user: their own stock purchase entries with optional date/vendor filter."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "view-purchase-report"
+
+    def get(self, request):
+        qs = StockEntry.objects.filter(user=request.user)
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        vendor_id = request.query_params.get('vendor_id')
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+        if vendor_id:
+            qs = qs.filter(vendor__id=vendor_id)
+
+        agg = qs.aggregate(
+            total_entries=Count('id'),
+            total_qty=Sum('quantity'),
+            total_purchase_cost=Sum('purchase_price'),
+            total_cgst=Sum('cgst'),
+            total_sgst=Sum('sgst'),
+            total_labour=Sum('labour_cost'),
+            total_transport=Sum('transporter_cost'),
+            total_broker=Sum('broker_commission_amount'),
+        )
+
+        entries = []
+        for e in qs.select_related('product', 'vendor', 'broker', 'transporter').order_by('-created_at'):
+            entries.append({
+                'id': e.id,
+                'product_name': e.product.product_name,
+                'product_sku': e.product.sku_code,
+                'vendor': e.vendor.vendor_name,
+                'vendor_id': e.vendor.id,
+                'broker': e.broker.broker_name if e.broker else None,
+                'transporter': e.transporter.transporter_name if e.transporter else None,
+                'quantity': e.quantity,
+                'purchase_price': float(e.purchase_price),
+                'cgst_percentage': float(e.cgst_percentage or 0),
+                'cgst': float(e.cgst or 0),
+                'sgst_percentage': float(e.sgst_percentage or 0),
+                'sgst': float(e.sgst or 0),
+                'labour_cost': float(e.labour_cost or 0),
+                'transporter_cost': float(e.transporter_cost or 0),
+                'broker_commission': float(e.broker_commission_amount or 0),
+                'manufacture_date': e.manufacture_date,
+                'created_at': e.created_at,
+            })
+
+        # User's vendors for filter dropdown
+        vendors = list(
+            Vendor.objects
+            .filter(stock_entries__user=request.user)
+            .distinct()
+            .order_by('vendor_name')
+            .values('id', 'vendor_name')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': agg['total_entries'] or 0,
+                'total_qty': agg['total_qty'] or 0,
+                'total_purchase_cost': float(agg['total_purchase_cost'] or 0),
+                'total_cgst': float(agg['total_cgst'] or 0),
+                'total_sgst': float(agg['total_sgst'] or 0),
+                'total_labour': float(agg['total_labour'] or 0),
+                'total_transport': float(agg['total_transport'] or 0),
+                'total_broker': float(agg['total_broker'] or 0),
+            },
+            'entries': entries,
+            'vendors': vendors,
+        })
+
+
+class AdminPurchaseReportView(APIView):
+    """Admin: all stock purchase entries across all users, with date/user/vendor filter."""
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        qs = StockEntry.objects.select_related('user', 'product', 'vendor', 'broker', 'transporter').all()
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        user_id = request.query_params.get('user_id')
+        vendor_id = request.query_params.get('vendor_id')
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+        if user_id:
+            qs = qs.filter(user__id=user_id)
+        if vendor_id:
+            qs = qs.filter(vendor__id=vendor_id)
+
+        agg = qs.aggregate(
+            total_entries=Count('id'),
+            total_qty=Sum('quantity'),
+            total_purchase_cost=Sum('purchase_price'),
+            total_cgst=Sum('cgst'),
+            total_sgst=Sum('sgst'),
+            total_labour=Sum('labour_cost'),
+            total_transport=Sum('transporter_cost'),
+            total_broker=Sum('broker_commission_amount'),
+        )
+
+        entries = []
+        for e in qs.order_by('-created_at'):
+            entries.append({
+                'id': e.id,
+                'added_by': f"{e.user.first_name} {e.user.last_name}",
+                'added_by_id': e.user.id,
+                'product_name': e.product.product_name,
+                'product_sku': e.product.sku_code,
+                'vendor': e.vendor.vendor_name,
+                'vendor_id': e.vendor.id,
+                'broker': e.broker.broker_name if e.broker else None,
+                'transporter': e.transporter.transporter_name if e.transporter else None,
+                'quantity': e.quantity,
+                'purchase_price': float(e.purchase_price),
+                'cgst_percentage': float(e.cgst_percentage or 0),
+                'cgst': float(e.cgst or 0),
+                'sgst_percentage': float(e.sgst_percentage or 0),
+                'sgst': float(e.sgst or 0),
+                'labour_cost': float(e.labour_cost or 0),
+                'transporter_cost': float(e.transporter_cost or 0),
+                'broker_commission': float(e.broker_commission_amount or 0),
+                'manufacture_date': e.manufacture_date,
+                'created_at': e.created_at,
+            })
+
+        # All vendors for filter dropdown
+        vendors = list(
+            Vendor.objects
+            .filter(stock_entries__isnull=False)
+            .distinct()
+            .order_by('vendor_name')
+            .values('id', 'vendor_name')
+        )
+
+        # All users who have added stock entries
+        users = list(
+            UserMaster.objects
+            .filter(stock_entries__isnull=False)
+            .distinct()
+            .values('id', 'first_name', 'last_name', 'business_name')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': agg['total_entries'] or 0,
+                'total_qty': agg['total_qty'] or 0,
+                'total_purchase_cost': float(agg['total_purchase_cost'] or 0),
+                'total_cgst': float(agg['total_cgst'] or 0),
+                'total_sgst': float(agg['total_sgst'] or 0),
+                'total_labour': float(agg['total_labour'] or 0),
+                'total_transport': float(agg['total_transport'] or 0),
+                'total_broker': float(agg['total_broker'] or 0),
+            },
+            'entries': entries,
+            'vendors': vendors,
+            'users': users,
+        })
+
+
+class UserBrokerReportView(APIView):
+    """Logged-in user: their stock entries that involved a broker, with date/broker filter."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "view-broker-report"
+
+    def get(self, request):
+        qs = StockEntry.objects.filter(user=request.user, broker__isnull=False)
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        broker_id = request.query_params.get('broker_id')
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+        if broker_id:
+            qs = qs.filter(broker__id=broker_id)
+
+        agg = qs.aggregate(
+            total_entries=Count('id'),
+            total_qty=Sum('quantity'),
+            total_commission=Sum('broker_commission_amount'),
+            total_purchase_cost=Sum('purchase_price'),
+        )
+
+        entries = []
+        for e in qs.select_related('product', 'vendor', 'broker', 'transporter').order_by('-created_at'):
+            entries.append({
+                'id': e.id,
+                'product_name': e.product.product_name,
+                'product_sku': e.product.sku_code,
+                'vendor': e.vendor.vendor_name,
+                'broker_name': e.broker.broker_name,
+                'broker_id': e.broker.id,
+                'broker_phone': e.broker.phone_number,
+                'transporter': e.transporter.transporter_name if e.transporter else None,
+                'quantity': e.quantity,
+                'purchase_price': float(e.purchase_price),
+                'broker_commission': float(e.broker_commission_amount or 0),
+                'cgst_percentage': float(e.cgst_percentage or 0),
+                'cgst': float(e.cgst or 0),
+                'sgst_percentage': float(e.sgst_percentage or 0),
+                'sgst': float(e.sgst or 0),
+                'labour_cost': float(e.labour_cost or 0),
+                'transporter_cost': float(e.transporter_cost or 0),
+                'manufacture_date': e.manufacture_date,
+                'created_at': e.created_at,
+            })
+
+        # All brokers this user has ever used
+        brokers = list(
+            Broker.objects
+            .filter(stock_entries__user=request.user)
+            .distinct()
+            .order_by('broker_name')
+            .values('id', 'broker_name', 'phone_number')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': agg['total_entries'] or 0,
+                'total_qty': agg['total_qty'] or 0,
+                'total_commission': float(agg['total_commission'] or 0),
+                'total_purchase_cost': float(agg['total_purchase_cost'] or 0),
+            },
+            'entries': entries,
+            'brokers': brokers,
+        })
+
+
+class AdminBrokerReportView(APIView):
+    """Admin: all broker-involved stock entries across all users, with date/user/broker filter."""
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        qs = StockEntry.objects.filter(broker__isnull=False).select_related(
+            'user', 'product', 'vendor', 'broker', 'transporter'
+        )
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        user_id = request.query_params.get('user_id')
+        broker_id = request.query_params.get('broker_id')
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+        if user_id:
+            qs = qs.filter(user__id=user_id)
+        if broker_id:
+            qs = qs.filter(broker__id=broker_id)
+
+        agg = qs.aggregate(
+            total_entries=Count('id'),
+            total_qty=Sum('quantity'),
+            total_commission=Sum('broker_commission_amount'),
+            total_purchase_cost=Sum('purchase_price'),
+        )
+
+        entries = []
+        for e in qs.order_by('-created_at'):
+            entries.append({
+                'id': e.id,
+                'added_by': f"{e.user.first_name} {e.user.last_name}",
+                'added_by_id': e.user.id,
+                'product_name': e.product.product_name,
+                'product_sku': e.product.sku_code,
+                'vendor': e.vendor.vendor_name,
+                'broker_name': e.broker.broker_name,
+                'broker_id': e.broker.id,
+                'broker_phone': e.broker.phone_number,
+                'transporter': e.transporter.transporter_name if e.transporter else None,
+                'quantity': e.quantity,
+                'purchase_price': float(e.purchase_price),
+                'broker_commission': float(e.broker_commission_amount or 0),
+                'cgst_percentage': float(e.cgst_percentage or 0),
+                'cgst': float(e.cgst or 0),
+                'sgst_percentage': float(e.sgst_percentage or 0),
+                'sgst': float(e.sgst or 0),
+                'labour_cost': float(e.labour_cost or 0),
+                'transporter_cost': float(e.transporter_cost or 0),
+                'manufacture_date': e.manufacture_date,
+                'created_at': e.created_at,
+            })
+
+        # All brokers ever used across system
+        brokers = list(
+            Broker.objects
+            .filter(stock_entries__isnull=False)
+            .distinct()
+            .order_by('broker_name')
+            .values('id', 'broker_name', 'phone_number')
+        )
+
+        # All users who have used a broker
+        users = list(
+            UserMaster.objects
+            .filter(stock_entries__broker__isnull=False)
+            .distinct()
+            .values('id', 'first_name', 'last_name', 'business_name')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': agg['total_entries'] or 0,
+                'total_qty': agg['total_qty'] or 0,
+                'total_commission': float(agg['total_commission'] or 0),
+                'total_purchase_cost': float(agg['total_purchase_cost'] or 0),
+            },
+            'entries': entries,
+            'brokers': brokers,
             'users': users,
         })

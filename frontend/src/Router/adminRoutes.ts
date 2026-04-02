@@ -9,4 +9,6 @@ export const admin_routes = {
   allusersdata: "/admin/all-users-data",
   allstockmanagement: "/admin/stock-management",
   adminsalesreport: "/admin/reports/sales",
+  adminpurchasereport: "/admin/reports/purchase",
+  adminbrokerreport: "/admin/reports/broker",
 };

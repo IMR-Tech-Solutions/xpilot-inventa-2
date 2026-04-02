@@ -10,4 +10,6 @@ export const admin_modules = {
   allusersdata: "allusersdata",
   allstockmanagement: "allstockmanagement",
   adminsalesreport: "adminsalesreport",
+  adminpurchasereport: "adminpurchasereport",
+  adminbrokerreport: "adminbrokerreport",
 };

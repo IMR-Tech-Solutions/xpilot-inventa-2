@@ -169,4 +169,14 @@ AVAILABLE_SERVICES = [
         "method": "view-sales-report",
         "module": "salesreport",
     },
+    {
+        "name": "Purchase Report",
+        "method": "view-purchase-report",
+        "module": "purchasereport",
+    },
+    {
+        "name": "Broker Report",
+        "method": "view-broker-report",
+        "module": "brokerreport",
+    },
 ]

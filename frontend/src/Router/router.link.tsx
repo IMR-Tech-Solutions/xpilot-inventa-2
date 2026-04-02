@@ -10,6 +10,18 @@ const SalesReport = lazy(
 const AdminSalesReport = lazy(
   () => import("../Admin/Reports/adminsalesreport/AdminSalesReport"),
 );
+const PurchaseReport = lazy(
+  () => import("../pages/Reports/purchasereport/PurchaseReport"),
+);
+const AdminPurchaseReport = lazy(
+  () => import("../Admin/Reports/adminpurchasereport/AdminPurchaseReport"),
+);
+const BrokerReport = lazy(
+  () => import("../pages/Reports/brokerreport/BrokerReport"),
+);
+const AdminBrokerReport = lazy(
+  () => import("../Admin/Reports/adminbrokerreport/AdminBrokerReport"),
+);
 //////////////////////////////////////////////////////////// Reports
 const Purchaseinvoice = lazy(
   () => import("../pages/Purchaseinvoice/Purchaseinvoice"),
@@ -426,6 +438,20 @@ export const websiteRoutes = [
     module: all_modules.salesreport,
     element: <SalesReport />,
   },
+  {
+    id: "56",
+    name: "Purchase Report",
+    link: all_routes.purchasereport,
+    module: all_modules.purchasereport,
+    element: <PurchaseReport />,
+  },
+  {
+    id: "57",
+    name: "Broker Report",
+    link: all_routes.brokerreport,
+    module: all_modules.brokerreport,
+    element: <BrokerReport />,
+  },
 ];
 
 export const authRoutes = [
@@ -519,6 +545,20 @@ export const adminPanelRoutes = [
     link: admin_routes.adminsalesreport,
     module: admin_modules.adminsalesreport,
     element: <AdminSalesReport />,
+  },
+  {
+    id: "11",
+    name: "Admin Purchase Report",
+    link: admin_routes.adminpurchasereport,
+    module: admin_modules.adminpurchasereport,
+    element: <AdminPurchaseReport />,
+  },
+  {
+    id: "12",
+    name: "Admin Broker Report",
+    link: admin_routes.adminbrokerreport,
+    module: admin_modules.adminbrokerreport,
+    element: <AdminBrokerReport />,
   },
 ];
 

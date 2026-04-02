@@ -154,6 +154,16 @@ export const reportItems: NavItem[] = [
         path: all_routes.salesreport,
         module: all_modules.salesreport,
       },
+      {
+        name: "Purchase Report",
+        path: all_routes.purchasereport,
+        module: all_modules.purchasereport,
+      },
+      {
+        name: "Broker Report",
+        path: all_routes.brokerreport,
+        module: all_modules.brokerreport,
+      },
     ],
   },
 ];
