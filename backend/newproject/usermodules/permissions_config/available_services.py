@@ -164,4 +164,9 @@ AVAILABLE_SERVICES = [
         "method":"shop-request",
         "module":"shoprequests"
     },
+    {
+        "name": "Sales Report",
+        "method": "view-sales-report",
+        "module": "salesreport",
+    },
 ]

@@ -28,4 +28,5 @@ export const all_modules = {
   shop: "shop",
   shoprequests: "shoprequests",
   brokermanagement: "brokermanagement",
+  salesreport: "salesreport",
 };

@@ -3,6 +3,14 @@ import { all_modules } from "../modules/modules";
 import { all_routes } from "./allroutes";
 import { admin_modules } from "../modules/adminmodules";
 import { admin_routes } from "./adminRoutes";
+//////////////////////////////////////////////////////////// Reports
+const SalesReport = lazy(
+  () => import("../pages/Reports/sales-report/SalesReport"),
+);
+const AdminSalesReport = lazy(
+  () => import("../Admin/Reports/adminsalesreport/AdminSalesReport"),
+);
+//////////////////////////////////////////////////////////// Reports
 const Purchaseinvoice = lazy(
   () => import("../pages/Purchaseinvoice/Purchaseinvoice"),
 );
@@ -58,8 +66,12 @@ const Users = lazy(() => import("../Admin/Users/Users"));
 const AdminHome = lazy(() => import("../Admin/Home/AdminHome"));
 const Allcategories = lazy(() => import("../Admin/Categories/Allcategories"));
 const AdminProducts = lazy(() => import("../Admin/Products/Products"));
-const AllUsersData = lazy(() => import("../Admin/Pages/AllUsersData/AllUsersData"));
-const AllStockManagement = lazy(() => import("../Admin/Pages/AllStockManagement/AllStockManagement"));
+const AllUsersData = lazy(
+  () => import("../Admin/Pages/AllUsersData/AllUsersData"),
+);
+const AllStockManagement = lazy(
+  () => import("../Admin/Pages/AllStockManagement/AllStockManagement"),
+);
 
 // Chat
 const Chat = lazy(() => import("../pages/Chat/Chat"));
@@ -407,6 +419,13 @@ export const websiteRoutes = [
     module: all_modules.addstock,
     element: <AllTrasnporters />,
   },
+  {
+    id: "55",
+    name: "Sales Report",
+    link: all_routes.salesreport,
+    module: all_modules.salesreport,
+    element: <SalesReport />,
+  },
 ];
 
 export const authRoutes = [
@@ -493,6 +512,13 @@ export const adminPanelRoutes = [
     link: admin_routes.allstockmanagement,
     module: admin_modules.allstockmanagement,
     element: <AllStockManagement />,
+  },
+  {
+    id: "10",
+    name: "Admin Sales Report",
+    link: admin_routes.adminsalesreport,
+    module: admin_modules.adminsalesreport,
+    element: <AdminSalesReport />,
   },
 ];
 

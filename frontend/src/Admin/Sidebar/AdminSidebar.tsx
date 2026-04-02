@@ -87,7 +87,13 @@ const reportItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Reports",
-    subItems: [],
+    subItems: [
+      {
+        name: "Sales Report",
+        path: admin_routes.adminsalesreport,
+        module: admin_modules.adminsalesreport,
+      },
+    ],
   },
 ];
 

@@ -58,6 +58,9 @@ export const all_routes = {
   shoprequests: "/shop/orders/request",
   shoporders: "/shop-orders",
 
+  // ── Reports ───────────────────────────────────────────────────────────────
+  salesreport: "/reports/sales",
+
   // ── Notifications ─────────────────────────────────────────────────────────
   notifications: "/notifications",
 
