@@ -179,4 +179,9 @@ AVAILABLE_SERVICES = [
         "method": "view-broker-report",
         "module": "brokerreport",
     },
+    {
+        "name": "Franchise Report",
+        "method": "view-franchise-report",
+        "module": "franchisereport",
+    },
 ]

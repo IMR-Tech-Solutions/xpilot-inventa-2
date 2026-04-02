@@ -62,6 +62,7 @@ export const all_routes = {
   salesreport: "/reports/sales",
   purchasereport: "/reports/purchase",
   brokerreport: "/reports/broker",
+  franchisereport: "/reports/franchise",
 
   // ── Notifications ─────────────────────────────────────────────────────────
   notifications: "/notifications",

@@ -164,6 +164,11 @@ export const reportItems: NavItem[] = [
         path: all_routes.brokerreport,
         module: all_modules.brokerreport,
       },
+      {
+        name: "Franchise Report",
+        path: all_routes.franchisereport,
+        module: all_modules.franchisereport,
+      },
     ],
   },
 ];

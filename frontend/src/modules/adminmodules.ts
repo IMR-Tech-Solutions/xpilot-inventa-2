@@ -12,4 +12,5 @@ export const admin_modules = {
   adminsalesreport: "adminsalesreport",
   adminpurchasereport: "adminpurchasereport",
   adminbrokerreport: "adminbrokerreport",
+  adminfranchisereport: "adminfranchisereport",
 };
