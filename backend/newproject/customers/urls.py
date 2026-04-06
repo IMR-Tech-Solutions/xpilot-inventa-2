@@ -7,19 +7,27 @@ from .views import (
     UpdateCustomerView,
     CustomerDetailView,
     DeleteCustomerView,
+    AnimalTypeListView,
+    AddCustomerAnimalView,
+    DeleteCustomerAnimalView,
 )
 
 urlpatterns = [
     # Admin urls
     path("admin/all-customers/", AllCustomersView.as_view(), name="admin-all-customers"),
     path("admin/user-customers/<int:user_id>/", AllUserCustomersView.as_view(), name="admin-customers-view-based-on-user"),
-    
+
     # Common urls
     path("add-customer/", AddCustomerView.as_view(), name="add-customer"),
-    
+
     # User urls
     path("my-customers/", UserCustomersView.as_view(), name="customers-view-based-on-user"),
     path("update-customer/<int:pk>/", UpdateCustomerView.as_view(), name="update-customer"),
     path("customer/<int:pk>/", CustomerDetailView.as_view(), name="customer-detail"),
     path("delete-customer/<int:pk>/", DeleteCustomerView.as_view(), name="delete-customer"),
+
+    # Animal urls
+    path("animal-types/", AnimalTypeListView.as_view(), name="animal-type-list"),
+    path("customer/<int:pk>/add-animal/", AddCustomerAnimalView.as_view(), name="add-customer-animal"),
+    path("customer-animal/<int:pk>/", DeleteCustomerAnimalView.as_view(), name="delete-customer-animal"),
 ]

@@ -32,17 +32,21 @@ class Customer(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     num_of_animals = models.PositiveIntegerField(default=0)
     type_of_customer = models.CharField(
-    max_length=20, 
-    choices=TYPE_CHOICES, 
-    blank=True, 
+    max_length=20,
+    choices=TYPE_CHOICES,
+    blank=True,
     null=True
     )
+    milk_collection = models.FloatField(blank=True, null=True, help_text="Milk collection in liters")
+    competitor_name = models.CharField(max_length=200, blank=True, null=True)
+    competitor_mobile_number = models.CharField(max_length=20, blank=True, null=True)
+    competitor_address = models.TextField(blank=True, null=True)
     customer_image = models.ImageField(
         upload_to="customers_images/",
         blank=True,
         null=True,
         default=default_customer_image
-    ) 
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -53,3 +57,24 @@ class Customer(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.phone})"
+
+
+class AnimalType(models.Model):
+    """Master list of animal types shared across all customers."""
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class CustomerAnimal(models.Model):
+    """Per-customer animal counts linked to a shared AnimalType."""
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='animals')
+    animal_type = models.ForeignKey(AnimalType, on_delete=models.PROTECT, related_name='customer_entries')
+    count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('customer', 'animal_type')
+
+    def __str__(self):
+        return f"{self.customer} — {self.animal_type.name}: {self.count}"

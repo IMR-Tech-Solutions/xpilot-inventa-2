@@ -45,3 +45,23 @@ export const updatecustomerservice = async (
 ) => {
   await api.put(`update-customer/${customerID}/`, updatedData);
 };
+
+// Get all animal types (shared master list)
+export const getanimaltypesservice = async () => {
+  const response = await api.get("animal-types/");
+  return response.data;
+};
+
+// Add animal to customer (creates AnimalType if new name provided)
+export const addcustomeranimalservice = async (
+  customerID: number,
+  data: { animal_type_id?: number; animal_name?: string; count: number }
+) => {
+  const response = await api.post(`customer/${customerID}/add-animal/`, data);
+  return response.data;
+};
+
+// Delete a CustomerAnimal entry
+export const deletecustomeranimalservice = async (animalEntryID: number) => {
+  await api.delete(`customer-animal/${animalEntryID}/`);
+};

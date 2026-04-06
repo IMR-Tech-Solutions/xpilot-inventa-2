@@ -276,6 +276,17 @@ export interface VendorInvoiceData {
   created_at: string;
 }
 
+export interface AnimalType {
+  id: number;
+  name: string;
+}
+
+export interface CustomerAnimal {
+  id: number;
+  animal_type: AnimalType;
+  count: number;
+}
+
 export interface CustomerData {
   id: number;
   user: number;
@@ -290,13 +301,18 @@ export interface CustomerData {
   state: string;
   zip_code: string;
   country: string;
-  date_of_birth: string | null; // ISO string or null
+  date_of_birth: string | null;
   gender: string;
   num_of_animals: number;
   type_of_customer: string;
+  milk_collection: number | null;
+  competitor_name: string | null;
+  competitor_mobile_number: string | null;
+  competitor_address: string | null;
   customer_image: string;
-  created_at: string; // ISO timestamp
-  updated_at: string; // ISO timestamp
+  animals: CustomerAnimal[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OrderItem {

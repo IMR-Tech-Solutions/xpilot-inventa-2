@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { Table, Input, Button, Space, Popconfirm } from "antd";
@@ -8,7 +9,7 @@ import {
   deletecustomerservice,
   getsinglecustomerservice,
 } from "../../services/customerservices";
-import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, EyeOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
 import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditCustomer from "./EditCustomer";
@@ -19,6 +20,7 @@ import { all_routes } from "../../Router/allroutes";
 const { Search } = Input;
 
 const Customers = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerData[]>(
     []
@@ -126,6 +128,12 @@ const Customers = () => {
       key: "actions",
       render: (_: any, record: CustomerData) => (
         <Space size="small">
+          <Button
+            id="table-view-btn"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/customers/${record.id}`)}
+          />
           <Popconfirm
             title="Are you sure to delete this customer?"
             onConfirm={() => handleDelete(record.id)}

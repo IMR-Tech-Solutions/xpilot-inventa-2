@@ -49,6 +49,10 @@ const Editcustomer = ({
         gender: selectedCustomer.gender,
         num_of_animals: selectedCustomer.num_of_animals,
         type_of_customer: selectedCustomer.type_of_customer,
+        milk_collection: selectedCustomer.milk_collection ?? "",
+        competitor_name: selectedCustomer.competitor_name ?? "",
+        competitor_mobile_number: selectedCustomer.competitor_mobile_number ?? "",
+        competitor_address: selectedCustomer.competitor_address ?? "",
       });
     }
   }, [selectedCustomer, visible, form]);
@@ -192,6 +196,22 @@ const Editcustomer = ({
             <Option value="distributor_dealer">Distributor/Dealer</Option>
             <Option value="farmer">Farmer</Option>
           </Select>
+        </Form.Item>
+
+        <Form.Item label="Milk Collection (Liters)" name="milk_collection">
+          <Input type="number" min={0} step={0.1} placeholder="e.g. 25.5" />
+        </Form.Item>
+
+        <Form.Item label="Competitor Name" name="competitor_name">
+          <Input placeholder="Enter competitor name" />
+        </Form.Item>
+
+        <Form.Item label="Competitor Mobile" name="competitor_mobile_number">
+          <Input placeholder="Enter competitor mobile number" />
+        </Form.Item>
+
+        <Form.Item label="Competitor Address" name="competitor_address">
+          <Input.TextArea rows={2} placeholder="Enter competitor address" />
         </Form.Item>
 
         <Form.Item label="Customer Image" name="customer_image">

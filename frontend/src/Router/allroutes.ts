@@ -32,6 +32,7 @@ export const all_routes = {
   // ── Customers ─────────────────────────────────────────────────────────────
   customer: "/customers",
   addcustomer: "/add-customers",
+  customerdetail: "/customers/:id",
 
   // ── Vendors ───────────────────────────────────────────────────────────────
   vendors: "/vendors",

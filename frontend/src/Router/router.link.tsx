@@ -74,6 +74,7 @@ const Categories = lazy(() => import("../pages/Category/Categories"));
 const Addcategories = lazy(() => import("../pages/Category/Addcategories"));
 const Customers = lazy(() => import("../pages/Customer/Customers"));
 const Addcustomer = lazy(() => import("../pages/Customer/Addcustomer"));
+const CustomerDetail = lazy(() => import("../pages/Customer/CustomerDetail"));
 const Vendor = lazy(() => import("../pages/Vendors/Vendor"));
 const Addvendors = lazy(() => import("../pages/Vendors/Addvendors"));
 
@@ -289,6 +290,13 @@ export const websiteRoutes = [
     link: all_routes.addcustomer,
     module: all_modules.addcustomer,
     element: <Addcustomer />,
+  },
+  {
+    id: "23b",
+    name: "Customer Detail",
+    link: all_routes.customerdetail,
+    module: all_modules.customers,
+    element: <CustomerDetail />,
   },
   {
     id: "24",

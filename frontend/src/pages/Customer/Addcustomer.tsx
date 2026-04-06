@@ -26,6 +26,10 @@ const AddCustomer = () => {
     gender: "",
     num_of_animals: 0,
     type_of_customer: "",
+    milk_collection: "",
+    competitor_name: "",
+    competitor_mobile_number: "",
+    competitor_address: "",
   });
 
   const [customerImage, setCustomerImage] = useState<File | null>(null);
@@ -90,6 +94,10 @@ const AddCustomer = () => {
         gender: "",
         num_of_animals: 0,
         type_of_customer: "",
+        milk_collection: "",
+        competitor_name: "",
+        competitor_mobile_number: "",
+        competitor_address: "",
       });
       setCustomerImage(null);
       const fileInput = document.querySelector(
@@ -296,6 +304,67 @@ const AddCustomer = () => {
                   Farmer
                 </option>
               </select>
+            </div>
+
+            {/* Milk Collection */}
+            <div>
+              <Label>
+                Milk Collection (Liters){" "}
+                <span className="text-gray-400 font-normal text-xs">— optional</span>
+              </Label>
+              <input
+                type="number"
+                name="milk_collection"
+                value={form.milk_collection}
+                onChange={handleChange}
+                className="input-field"
+                min="0"
+                step="0.1"
+                placeholder="e.g. 25.5"
+              />
+            </div>
+
+            {/* Competitor Info */}
+            <div>
+              <Label>
+                Competitor Name{" "}
+                <span className="text-gray-400 font-normal text-xs">— optional</span>
+              </Label>
+              <input
+                type="text"
+                name="competitor_name"
+                value={form.competitor_name}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Enter competitor name"
+              />
+            </div>
+            <div>
+              <Label>
+                Competitor Mobile{" "}
+                <span className="text-gray-400 font-normal text-xs">— optional</span>
+              </Label>
+              <input
+                type="text"
+                name="competitor_mobile_number"
+                value={form.competitor_mobile_number}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Enter competitor mobile number"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label>
+                Competitor Address{" "}
+                <span className="text-gray-400 font-normal text-xs">— optional</span>
+              </Label>
+              <textarea
+                name="competitor_address"
+                value={form.competitor_address}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Enter competitor address"
+              />
             </div>
 
             {/* File Upload */}
