@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Table, Button, Select, InputNumber, Popconfirm, Tag } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
@@ -21,7 +21,7 @@ const { Option } = Select;
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const customerId = Number(id);
 
   const [customer, setCustomer] = useState<CustomerData | null>(null);
