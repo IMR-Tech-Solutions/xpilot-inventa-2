@@ -72,6 +72,7 @@ const Editproduct = ({
         is_active: selectedProduct.is_active,
         category: selectedProduct.category,
         sku_code: selectedProduct.sku_code,
+        hsn_code: selectedProduct.hsn_code || "",
         selling_price: selectedProduct.selling_price
           ? parseFloat(selectedProduct.selling_price)
           : null,
@@ -176,6 +177,10 @@ const Editproduct = ({
 
         <Form.Item label="SKU Code" name="sku_code">
           <Input />
+        </Form.Item>
+
+        <Form.Item label="HSN Code" name="hsn_code">
+          <Input maxLength={20} placeholder="e.g. 1001, 0902 (optional)" />
         </Form.Item>
 
         <Form.Item

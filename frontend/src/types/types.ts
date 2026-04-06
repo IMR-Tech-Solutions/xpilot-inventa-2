@@ -74,6 +74,7 @@ export interface ProductData {
   user?: number;
   user_name?: string;
   sku_code: string;
+  hsn_code?: string | null;
   unit_name: string;
   selling_price: string | null;
   current_stock: number;

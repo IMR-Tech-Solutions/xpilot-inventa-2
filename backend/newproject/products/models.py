@@ -26,6 +26,7 @@ class Product(models.Model):
         default=default_product_image
     )
     sku_code = models.CharField(max_length=50, blank=True)
+    hsn_code = models.CharField(max_length=20, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     unit = models.ForeignKey(ProductUnit, on_delete=models.CASCADE,null=True, blank=True)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

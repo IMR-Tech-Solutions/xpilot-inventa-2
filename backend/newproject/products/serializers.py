@@ -18,6 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "product_name",
             "product_image",
             "sku_code",
+            "hsn_code",
             "description",
             "unit",
             "unit_name",

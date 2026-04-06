@@ -85,14 +85,15 @@
         <thead>
           <tr>
             <th style="width:4%;">#</th>
-            <th style="width:28%;">Product</th>
-            <th style="width:8%;">Unit</th>
-            <th style="width:12%;">Price</th>
+            <th style="width:24%;">Product</th>
+            <th style="width:8%;">HSN</th>
+            <th style="width:7%;">Unit</th>
+            <th style="width:10%;">Price</th>
             <th style="width:7%;">Qty</th>
-            <th style="width:12%;">CGST</th>
-            <th style="width:12%;">SGST</th>
-            <th style="width:10%;">MFG Date</th>
-            <th style="width:12%;">Total</th>
+            <th style="width:10%;">CGST</th>
+            <th style="width:10%;">SGST</th>
+            <th style="width:9%;">MFG Date</th>
+            <th style="width:11%;">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -100,6 +101,7 @@
           <tr>
             <td class="center">{{ forloop.counter }}</td>
             <td><strong>{{ item.product_name }}</strong></td>
+            <td class="center">{{ item.hsn_code|default:"—" }}</td>
             <td class="center">{{ item.unit }}</td>
             <td class="num">&#8377;{{ item.purchase_price|floatformat:2 }}</td>
             <td class="center">{{ item.quantity }}</td>

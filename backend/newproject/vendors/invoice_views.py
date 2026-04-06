@@ -54,6 +54,7 @@ class VendorInvoicePDFBaseView(APIView):
 
             items.append({
                 "product_name": product.product_name,
+                "hsn_code": product.hsn_code or "",
                 "quantity": entry.quantity,
                 "unit": product.unit if hasattr(product, 'unit') else "N/A",
                 "purchase_price": float(entry.purchase_price),

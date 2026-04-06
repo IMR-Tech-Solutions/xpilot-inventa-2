@@ -100,6 +100,16 @@ const Products = () => {
       ),
     },
     {
+      title: "HSN Code",
+      dataIndex: "hsn_code",
+      key: "hsn_code",
+      render: (hsn: string) => (
+        <span className="truncate text-gray-800 dark:text-white/90">
+          {hsn || "—"}
+        </span>
+      ),
+    },
+    {
       title: "Category Name",
       dataIndex: "category_name",
       key: "category_name",
@@ -252,6 +262,7 @@ const Products = () => {
                 [
                   { label: "Sr. No", key: "__srno" },
                   { label: "SKU", key: "sku_code" },
+                  { label: "HSN Code", key: "hsn_code" },
                   { label: "Product Name", key: "product_name" },
                   { label: "Category", key: "category_name" },
                   { label: "Unit", key: "unit_name" },
@@ -272,6 +283,7 @@ const Products = () => {
                 [
                   { label: "Sr. No", key: "__srno" },
                   { label: "SKU", key: "sku_code" },
+                  { label: "HSN Code", key: "hsn_code" },
                   { label: "Product Name", key: "product_name" },
                   { label: "Category", key: "category_name" },
                   { label: "Unit", key: "unit_name" },

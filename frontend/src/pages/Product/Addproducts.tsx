@@ -22,6 +22,7 @@ const AddProducts = () => {
     category: "",
     product_name: "",
     sku_code: "",
+    hsn_code: "",
     description: "",
     unit: "",
     low_stock_threshold: "10",
@@ -120,6 +121,7 @@ const AddProducts = () => {
         category: "",
         product_name: "",
         sku_code: "",
+        hsn_code: "",
         description: "",
         unit: "",
         low_stock_threshold: "10",
@@ -200,6 +202,18 @@ const AddProducts = () => {
                 className="input-field"
                 maxLength={50}
                 placeholder="Enter SKU code (optional, auto-generated if empty)"
+              />
+            </div>
+            <div>
+              <Label>HSN Code <span className="text-gray-400 font-normal text-xs">— optional</span></Label>
+              <input
+                type="text"
+                name="hsn_code"
+                value={productData.hsn_code}
+                onChange={handleChange}
+                className="input-field"
+                maxLength={20}
+                placeholder="e.g. 1001, 0902"
               />
             </div>
             {/* <div>
