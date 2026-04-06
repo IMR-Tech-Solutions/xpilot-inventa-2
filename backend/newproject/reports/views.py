@@ -365,7 +365,7 @@ class UserBrokerReportView(APIView):
         )
 
         entries = []
-        for e in qs.select_related('product', 'vendor', 'broker', 'transporter').order_by('-created_at'):
+        for e in qs.select_related('product', 'vendor', 'broker', 'transporter', 'vendor_invoice').order_by('-created_at'):
             entries.append({
                 'id': e.id,
                 'product_name': e.product.product_name,
@@ -375,6 +375,7 @@ class UserBrokerReportView(APIView):
                 'broker_id': e.broker.id,
                 'broker_phone': e.broker.phone_number,
                 'transporter': e.transporter.transporter_name if e.transporter else None,
+                'invoice_number': e.vendor_invoice.invoice_number if e.vendor_invoice else None,
                 'quantity': e.quantity,
                 'purchase_price': float(e.purchase_price),
                 'broker_commission': float(e.broker_commission_amount or 0),
@@ -415,7 +416,7 @@ class AdminBrokerReportView(APIView):
 
     def get(self, request):
         qs = StockEntry.objects.filter(broker__isnull=False).select_related(
-            'user', 'product', 'vendor', 'broker', 'transporter'
+            'user', 'product', 'vendor', 'broker', 'transporter', 'vendor_invoice'
         )
 
         start_date = request.query_params.get('start_date')
@@ -451,6 +452,7 @@ class AdminBrokerReportView(APIView):
                 'broker_id': e.broker.id,
                 'broker_phone': e.broker.phone_number,
                 'transporter': e.transporter.transporter_name if e.transporter else None,
+                'invoice_number': e.vendor_invoice.invoice_number if e.vendor_invoice else None,
                 'quantity': e.quantity,
                 'purchase_price': float(e.purchase_price),
                 'broker_commission': float(e.broker_commission_amount or 0),

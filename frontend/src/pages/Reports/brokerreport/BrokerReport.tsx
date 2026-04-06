@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getUserBrokerReportService } from "./brokerreportservice";
 import PageMeta from "../../../components/common/PageMeta";
 import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
@@ -12,6 +12,7 @@ interface BrokerEntry {
   broker_id: number;
   broker_phone: string | null;
   transporter: string | null;
+  invoice_number: string | null;
   quantity: number;
   purchase_price: number;
   broker_commission: number;
@@ -118,6 +119,7 @@ export default function BrokerReport() {
                     { label: "Qty", key: "quantity" },
                     { label: "Purchase Price", key: "purchase_price" },
                     { label: "Commission", key: "broker_commission" },
+                    { label: "Invoice No.", key: "invoice_number" },
                     { label: "Date", key: "created_at" },
                   ],
                   "broker-report"
@@ -141,6 +143,7 @@ export default function BrokerReport() {
                     { label: "Qty", key: "quantity" },
                     { label: "Purchase Price", key: "purchase_price" },
                     { label: "Commission", key: "broker_commission" },
+                    { label: "Invoice No.", key: "invoice_number" },
                     { label: "Date", key: "created_at" },
                   ],
                   "broker-report"
@@ -253,15 +256,15 @@ export default function BrokerReport() {
                       <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
                       <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Purchase Price</th>
                       <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Commission</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice No.</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                       <th className="py-3 px-3"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {entries.map((entry) => (
-                      <>
+                      <React.Fragment key={entry.id}>
                         <tr
-                          key={entry.id}
                           className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                         >
                           <td className="py-3 px-3">
@@ -284,6 +287,9 @@ export default function BrokerReport() {
                             ₹{entry.broker_commission.toLocaleString("en-IN")}
                           </td>
                           <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            {entry.invoice_number || "—"}
+                          </td>
+                          <td className="py-3 px-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                             {new Date(entry.created_at).toLocaleDateString("en-IN")}
                           </td>
                           <td className="py-3 px-3">
@@ -297,7 +303,7 @@ export default function BrokerReport() {
                         </tr>
                         {expandedEntry === entry.id && (
                           <tr key={`${entry.id}-costs`} className="bg-gray-50 dark:bg-gray-800/30">
-                            <td colSpan={9} className="px-6 py-3">
+                            <td colSpan={10} className="px-6 py-3">
                               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
                                 <div>
                                   <span className="text-gray-500 dark:text-gray-400">CGST ({entry.cgst_percentage}%)</span>
@@ -325,7 +331,7 @@ export default function BrokerReport() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

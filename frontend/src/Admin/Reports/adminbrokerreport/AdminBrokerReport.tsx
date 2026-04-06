@@ -17,6 +17,7 @@ interface BrokerEntry {
   broker_id: number;
   broker_phone: string | null;
   transporter: string | null;
+  invoice_number: string | null;
   quantity: number;
   purchase_price: number;
   broker_commission: number;
@@ -170,6 +171,12 @@ export default function AdminBrokerReport() {
       ),
     },
     {
+      title: "Invoice No.",
+      dataIndex: "invoice_number",
+      key: "invoice_number",
+      render: (val) => <span className="text-xs text-gray-500 dark:text-gray-400">{val || "—"}</span>,
+    },
+    {
       title: "Date",
       dataIndex: "created_at",
       key: "created_at",
@@ -224,6 +231,7 @@ export default function AdminBrokerReport() {
                     { label: "Qty", key: "quantity" },
                     { label: "Purchase Price", key: "purchase_price" },
                     { label: "Commission", key: "broker_commission" },
+                    { label: "Invoice No.", key: "invoice_number" },
                     { label: "Date", key: "created_at" },
                   ],
                   "admin-broker-report"
@@ -248,6 +256,7 @@ export default function AdminBrokerReport() {
                     { label: "Qty", key: "quantity" },
                     { label: "Purchase Price", key: "purchase_price" },
                     { label: "Commission", key: "broker_commission" },
+                    { label: "Invoice No.", key: "invoice_number" },
                     { label: "Date", key: "created_at" },
                   ],
                   "admin-broker-report"
