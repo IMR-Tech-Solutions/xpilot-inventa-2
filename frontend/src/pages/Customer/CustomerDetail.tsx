@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Table, Button, Select, InputNumber, Popconfirm, Space, Tag } from "antd";
+import { Table, Button, Select, InputNumber, Popconfirm, Tag } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
