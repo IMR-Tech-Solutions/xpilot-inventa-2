@@ -8,7 +8,8 @@ import {
   deletecategoryservice,
   getsinglecategoryservice,
 } from "../../services/categoryservices";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import Editcategory from "./Editcategory";
 import { CategoryData } from "../../types/types";
@@ -155,13 +156,43 @@ const Categories = () => {
         buttonlink={all_routes.addcategories}
         buttontitle="Add Categories"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search categories..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredCategories,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Category Name", key: "category_name" },
+                ],
+                "categories"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredCategories,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Category Name", key: "category_name" },
+                ],
+                "categories"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}
