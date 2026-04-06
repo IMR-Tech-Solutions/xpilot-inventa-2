@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Table, Tag, Statistic, Select } from "antd";
+import { Table, Tag, Statistic, Select, Button } from "antd";
+import { FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { getAdminFranchiseReportService } from "./adminfranchisereportservice";
 import PageMeta from "../../../components/common/PageMeta";
+import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
 
 interface FranchiseOrderItem {
   id: number;
@@ -270,13 +272,63 @@ export default function AdminFranchiseReport() {
 
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
-            Admin Franchise Report
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            System-wide stock sold from managers to franchise owners
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
+              Admin Franchise Report
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              System-wide stock sold from managers to franchise owners
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 mt-1">
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() =>
+                downloadCSV(
+                  orders,
+                  [
+                    { label: "Order #", key: "order_number" },
+                    { label: "Franchise", key: "shop_owner_name" },
+                    { label: "Business", key: "shop_owner_business" },
+                    { label: "Total Qty", key: "total_qty" },
+                    { label: "Total Value", key: "total_line_total" },
+                    { label: "Order Status", key: "order_status" },
+                    { label: "Payment Status", key: "payment_status" },
+                    { label: "Paid", key: "amount_paid" },
+                    { label: "Remaining", key: "remaining_amount" },
+                    { label: "Date", key: "order_date" },
+                  ],
+                  "admin-franchise-report"
+                )
+              }
+            >
+              CSV
+            </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              onClick={() =>
+                downloadPDF(
+                  orders,
+                  [
+                    { label: "Order #", key: "order_number" },
+                    { label: "Franchise", key: "shop_owner_name" },
+                    { label: "Business", key: "shop_owner_business" },
+                    { label: "Total Qty", key: "total_qty" },
+                    { label: "Total Value", key: "total_line_total" },
+                    { label: "Order Status", key: "order_status" },
+                    { label: "Payment Status", key: "payment_status" },
+                    { label: "Paid", key: "amount_paid" },
+                    { label: "Remaining", key: "remaining_amount" },
+                    { label: "Date", key: "order_date" },
+                  ],
+                  "admin-franchise-report"
+                )
+              }
+            >
+              PDF
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}

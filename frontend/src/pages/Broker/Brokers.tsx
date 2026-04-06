@@ -8,7 +8,8 @@ import {
   getsinglebrokerservice,
   deletebrokerservice,
 } from "../../services/brokerservices";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditBroker from "./EditBroker";
 import { handleError } from "../../utils/handleError";
@@ -182,13 +183,49 @@ const Brokers = () => {
         buttonlink={all_routes.addbroker}
         buttontitle="Add Broker"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search brokers..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredBrokers.map((b) => ({ ...b, status_text: b.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Broker Name", key: "broker_name" },
+                  { label: "Phone Number", key: "phone_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "brokers"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredBrokers.map((b) => ({ ...b, status_text: b.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Broker Name", key: "broker_name" },
+                  { label: "Phone Number", key: "phone_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "brokers"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

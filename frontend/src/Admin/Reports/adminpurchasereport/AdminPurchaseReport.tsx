@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Table, Drawer, Tag, Statistic, Select } from "antd";
+import { Table, Drawer, Tag, Statistic, Select, Button } from "antd";
+import { FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { getAdminPurchaseReportService } from "./adminpurchasereportservice";
 import PageMeta from "../../../components/common/PageMeta";
+import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
 
 interface StockEntry {
   id: number;
@@ -186,13 +188,63 @@ export default function AdminPurchaseReport() {
 
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
-            Admin Purchase Report
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            System-wide stock purchase entries across all users
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
+              Admin Purchase Report
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              System-wide stock purchase entries across all users
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 mt-1">
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() =>
+                downloadCSV(
+                  entries,
+                  [
+                    { label: "Product", key: "product_name" },
+                    { label: "SKU", key: "product_sku" },
+                    { label: "Added By", key: "added_by" },
+                    { label: "Vendor", key: "vendor" },
+                    { label: "Broker", key: "broker" },
+                    { label: "Transporter", key: "transporter" },
+                    { label: "Qty", key: "quantity" },
+                    { label: "Purchase Price", key: "purchase_price" },
+                    { label: "Mfg Date", key: "manufacture_date" },
+                    { label: "Added On", key: "created_at" },
+                  ],
+                  "admin-purchase-report"
+                )
+              }
+            >
+              CSV
+            </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              onClick={() =>
+                downloadPDF(
+                  entries,
+                  [
+                    { label: "Product", key: "product_name" },
+                    { label: "SKU", key: "product_sku" },
+                    { label: "Added By", key: "added_by" },
+                    { label: "Vendor", key: "vendor" },
+                    { label: "Broker", key: "broker" },
+                    { label: "Transporter", key: "transporter" },
+                    { label: "Qty", key: "quantity" },
+                    { label: "Purchase Price", key: "purchase_price" },
+                    { label: "Mfg Date", key: "manufacture_date" },
+                    { label: "Added On", key: "created_at" },
+                  ],
+                  "admin-purchase-report"
+                )
+              }
+            >
+              PDF
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}

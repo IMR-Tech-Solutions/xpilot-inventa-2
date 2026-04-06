@@ -4,7 +4,8 @@ import PageMeta from "../../components/common/PageMeta";
 import { Table, Input, Button, Space, Tag } from "antd";
 import ButtonComponentCard from "../../Admin/Components/ButtonComponentCard";
 import { getmystockentriesservice } from "../../services/stockbatchservices";
-import { AppstoreOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { StockEntryItem } from "../../types/types";
 import { handleError } from "../../utils/handleError";
 import { all_routes } from "../../Router/allroutes";
@@ -151,13 +152,57 @@ const Managestock = () => {
         buttonlink={all_routes.addstock}
         buttontitle="Add Stock"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search by product, vendor or invoice..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filtered,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Product", key: "product_name" },
+                  { label: "Vendor", key: "vendor_name" },
+                  { label: "Qty", key: "quantity" },
+                  { label: "Purchase Price", key: "purchase_price" },
+                  { label: "Invoice No.", key: "invoice_number" },
+                  { label: "Broker", key: "broker_name" },
+                  { label: "MFG Date", key: "manufacture_date" },
+                  { label: "Added On", key: "created_at" },
+                ],
+                "manage-stock"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filtered,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Product", key: "product_name" },
+                  { label: "Vendor", key: "vendor_name" },
+                  { label: "Qty", key: "quantity" },
+                  { label: "Purchase Price", key: "purchase_price" },
+                  { label: "Invoice No.", key: "invoice_number" },
+                  { label: "Broker", key: "broker_name" },
+                  { label: "MFG Date", key: "manufacture_date" },
+                  { label: "Added On", key: "created_at" },
+                ],
+                "manage-stock"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

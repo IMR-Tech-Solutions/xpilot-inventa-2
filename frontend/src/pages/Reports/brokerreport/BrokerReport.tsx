@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getUserBrokerReportService } from "./brokerreportservice";
 import PageMeta from "../../../components/common/PageMeta";
+import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
 
 interface BrokerEntry {
   id: number;
@@ -93,13 +94,63 @@ export default function BrokerReport() {
 
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
-            Broker Report
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Stock entries where a broker was involved — commission breakdown
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
+              Broker Report
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Stock entries where a broker was involved — commission breakdown
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 mt-1">
+            <button
+              onClick={() =>
+                downloadCSV(
+                  entries,
+                  [
+                    { label: "Product", key: "product_name" },
+                    { label: "SKU", key: "product_sku" },
+                    { label: "Vendor", key: "vendor" },
+                    { label: "Broker", key: "broker_name" },
+                    { label: "Broker Phone", key: "broker_phone" },
+                    { label: "Transporter", key: "transporter" },
+                    { label: "Qty", key: "quantity" },
+                    { label: "Purchase Price", key: "purchase_price" },
+                    { label: "Commission", key: "broker_commission" },
+                    { label: "Date", key: "created_at" },
+                  ],
+                  "broker-report"
+                )
+              }
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              CSV
+            </button>
+            <button
+              onClick={() =>
+                downloadPDF(
+                  entries,
+                  [
+                    { label: "Product", key: "product_name" },
+                    { label: "SKU", key: "product_sku" },
+                    { label: "Vendor", key: "vendor" },
+                    { label: "Broker", key: "broker_name" },
+                    { label: "Broker Phone", key: "broker_phone" },
+                    { label: "Transporter", key: "transporter" },
+                    { label: "Qty", key: "quantity" },
+                    { label: "Purchase Price", key: "purchase_price" },
+                    { label: "Commission", key: "broker_commission" },
+                    { label: "Date", key: "created_at" },
+                  ],
+                  "broker-report"
+                )
+              }
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              PDF
+            </button>
+          </div>
         </div>
 
         {/* Filters */}

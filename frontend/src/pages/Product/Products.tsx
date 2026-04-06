@@ -12,7 +12,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   AppstoreOutlined,
+  FilePdfOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditProduct from "./EditProduct";
 import { ProductData } from "../../types/types";
@@ -234,13 +237,53 @@ const Products = () => {
         buttonlink={all_routes.addproducts}
         buttontitle="Add Products"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search products..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredProducts,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "SKU", key: "sku_code" },
+                  { label: "Product Name", key: "product_name" },
+                  { label: "Category", key: "category_name" },
+                  { label: "Unit", key: "unit_name" },
+                  { label: "Selling Price", key: "selling_price" },
+                  { label: "Current Stock", key: "current_stock" },
+                ],
+                "products"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredProducts,
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "SKU", key: "sku_code" },
+                  { label: "Product Name", key: "product_name" },
+                  { label: "Category", key: "category_name" },
+                  { label: "Unit", key: "unit_name" },
+                  { label: "Selling Price", key: "selling_price" },
+                  { label: "Current Stock", key: "current_stock" },
+                ],
+                "products"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

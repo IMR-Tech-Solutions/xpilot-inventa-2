@@ -8,7 +8,8 @@ import {
   getSingleTransporterService,
   deleteTransporterService,
 } from "../../services/transporterservices";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditTrasnporter from "./EditTrasnporter";
 import { TransporterData } from "../../types/types";
@@ -189,13 +190,51 @@ const AllTransporters = () => {
         buttonlink={all_routes.addtransporter} // You'll need to define this route
         buttontitle="Add Transporter"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search transporters by name, contact person, or phone..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredTransporters.map((t) => ({ ...t, status_text: t.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Transporter Name", key: "transporter_name" },
+                  { label: "Contact Person", key: "contact_person" },
+                  { label: "Phone Number", key: "contact_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "transporters"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredTransporters.map((t) => ({ ...t, status_text: t.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Transporter Name", key: "transporter_name" },
+                  { label: "Contact Person", key: "contact_person" },
+                  { label: "Phone Number", key: "contact_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "transporters"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

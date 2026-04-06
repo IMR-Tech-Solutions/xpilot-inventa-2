@@ -8,7 +8,8 @@ import {
   getsinglevendorservice,
   deletevendorservice,
 } from "../../services/vendorservices";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditVendor from "./Editvendor";
 import { handleError } from "../../utils/handleError";
@@ -164,13 +165,49 @@ const Vendor = () => {
         buttonlink={all_routes.addvendors}
         buttontitle="Add Vendor"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search vendors..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredVendors.map((v) => ({ ...v, status_text: v.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Vendor Name", key: "vendor_name" },
+                  { label: "Contact Number", key: "contact_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "vendors"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredVendors.map((v) => ({ ...v, status_text: v.is_active ? "Active" : "Inactive" })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Vendor Name", key: "vendor_name" },
+                  { label: "Contact Number", key: "contact_number" },
+                  { label: "Email", key: "email" },
+                  { label: "Status", key: "status_text" },
+                ],
+                "vendors"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

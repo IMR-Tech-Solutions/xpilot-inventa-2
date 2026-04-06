@@ -8,7 +8,8 @@ import {
   deletecustomerservice,
   getsinglecustomerservice,
 } from "../../services/customerservices";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, FilePdfOutlined, FileTextOutlined } from "@ant-design/icons";
+import { downloadCSV, downloadPDF } from "../../utils/downloadUtils";
 import { toast } from "react-toastify";
 import EditCustomer from "./EditCustomer";
 import { CustomerData } from "../../types/types";
@@ -184,13 +185,47 @@ const Customers = () => {
         buttonlink={all_routes.addcustomer}
         buttontitle="Add Customer"
       >
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <Search
             placeholder="Search customers..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             className="custom-search"
           />
+          <Button
+            icon={<FileTextOutlined />}
+            onClick={() =>
+              downloadCSV(
+                filteredCustomers.map((c) => ({ ...c, full_name: `${c.first_name} ${c.last_name}` })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Customer Name", key: "full_name" },
+                  { label: "Email", key: "email" },
+                  { label: "Phone", key: "phone" },
+                ],
+                "customers"
+              )
+            }
+          >
+            CSV
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={() =>
+              downloadPDF(
+                filteredCustomers.map((c) => ({ ...c, full_name: `${c.first_name} ${c.last_name}` })),
+                [
+                  { label: "Sr. No", key: "__srno" },
+                  { label: "Customer Name", key: "full_name" },
+                  { label: "Email", key: "email" },
+                  { label: "Phone", key: "phone" },
+                ],
+                "customers"
+              )
+            }
+          >
+            PDF
+          </Button>
         </div>
         <Table
           columns={columns}

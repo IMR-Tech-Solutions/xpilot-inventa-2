@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getUserSalesReportService } from "./salesreportservice";
 import PageMeta from "../../../components/common/PageMeta";
+import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
 
 interface OrderItem {
   product_name: string;
@@ -107,13 +108,61 @@ export default function SalesReport() {
 
       <div className="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
-            Sales Report
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Your POS retail sales overview
-          </p>
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h3 className="font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl mb-1">
+              Sales Report
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Your POS retail sales overview
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0 mt-1">
+            <button
+              onClick={() =>
+                downloadCSV(
+                  orders,
+                  [
+                    { label: "Order #", key: "order_number" },
+                    { label: "Customer", key: "customer_name" },
+                    { label: "Phone", key: "customer_phone" },
+                    { label: "Order Status", key: "order_status" },
+                    { label: "Payment Status", key: "payment_status" },
+                    { label: "Total", key: "total_amount" },
+                    { label: "Paid", key: "amount_paid" },
+                    { label: "Remaining", key: "remaining_amount" },
+                    { label: "Date", key: "created_at" },
+                  ],
+                  "sales-report"
+                )
+              }
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              CSV
+            </button>
+            <button
+              onClick={() =>
+                downloadPDF(
+                  orders,
+                  [
+                    { label: "Order #", key: "order_number" },
+                    { label: "Customer", key: "customer_name" },
+                    { label: "Phone", key: "customer_phone" },
+                    { label: "Order Status", key: "order_status" },
+                    { label: "Payment Status", key: "payment_status" },
+                    { label: "Total", key: "total_amount" },
+                    { label: "Paid", key: "amount_paid" },
+                    { label: "Remaining", key: "remaining_amount" },
+                    { label: "Date", key: "created_at" },
+                  ],
+                  "sales-report"
+                )
+              }
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              PDF
+            </button>
+          </div>
         </div>
 
         {/* Date Filters */}
