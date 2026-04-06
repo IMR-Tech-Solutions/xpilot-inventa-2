@@ -17,7 +17,8 @@ export const getallusercustomersservice = (userID: number) => {
 
 // Add Customer Data
 export const addcustomerservice = async (customerData: FormData) => {
-  await api.post("add-customer/", customerData);
+  const response = await api.post("add-customer/", customerData);
+  return response.data;
 };
 
 // Get logged-in user's customers
