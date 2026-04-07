@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getUserPurchaseReportService } from "./purchasereportservice";
 import PageMeta from "../../../components/common/PageMeta";
 import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
@@ -279,9 +279,8 @@ export default function PurchaseReport() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {entries.map((entry) => (
-                      <>
+                      <React.Fragment key={entry.id}>
                         <tr
-                          key={entry.id}
                           className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                         >
                           <td className="py-3 px-3">
@@ -311,7 +310,7 @@ export default function PurchaseReport() {
                           </td>
                         </tr>
                         {expandedEntry === entry.id && (
-                          <tr key={`${entry.id}-costs`} className="bg-gray-50 dark:bg-gray-800/30">
+                          <tr className="bg-gray-50 dark:bg-gray-800/30">
                             <td colSpan={9} className="px-6 py-3">
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                                 <div>
@@ -338,9 +337,21 @@ export default function PurchaseReport() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 font-semibold">
+                      <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300 uppercase" colSpan={4}>Total</td>
+                      <td className="py-3 px-3 text-right text-blue-600 dark:text-blue-400">
+                        {summary?.total_qty ?? 0}
+                      </td>
+                      <td className="py-3 px-3 text-right text-gray-900 dark:text-white whitespace-nowrap">
+                        ₹{(summary?.total_purchase_cost ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td colSpan={3} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

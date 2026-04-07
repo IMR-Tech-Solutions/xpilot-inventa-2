@@ -381,6 +381,26 @@ export default function AdminPurchaseReport() {
           pagination={{ pageSize: 20, showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: "No purchase entries found." }}
+          summary={() => (
+            <Table.Summary.Row className="font-semibold bg-gray-50 dark:bg-gray-800/50">
+              <Table.Summary.Cell index={0} colSpan={5}>
+                <span className="text-xs uppercase text-gray-500">Total</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right">
+                <span className="font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                  {summary?.total_qty ?? 0}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={6} align="right">
+                <span className="font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                  ₹{(summary?.total_purchase_cost ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={7} />
+              <Table.Summary.Cell index={8} />
+              <Table.Summary.Cell index={9} />
+            </Table.Summary.Row>
+          )}
         />
       </div>
 

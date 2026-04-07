@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getUserSalesReportService } from "./salesreportservice";
 import PageMeta from "../../../components/common/PageMeta";
 import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
@@ -288,9 +288,8 @@ export default function SalesReport() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {orders.map((order) => (
-                      <>
+                      <React.Fragment key={order.id}>
                         <tr
-                          key={order.id}
                           className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                         >
                           <td className="py-3 px-3 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">
@@ -337,7 +336,7 @@ export default function SalesReport() {
                           </td>
                         </tr>
                         {expandedOrder === order.id && (
-                          <tr key={`${order.id}-items`} className="bg-gray-50 dark:bg-gray-800/30">
+                          <tr className="bg-gray-50 dark:bg-gray-800/30">
                             <td colSpan={9} className="px-6 py-3">
                               <table className="w-full text-xs">
                                 <thead>
@@ -367,9 +366,24 @@ export default function SalesReport() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 font-semibold">
+                      <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300 uppercase" colSpan={4}>Total</td>
+                      <td className="py-3 px-3 text-right text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                        ₹{(summary?.total_revenue ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-3 text-right text-green-600 dark:text-green-400 whitespace-nowrap">
+                        ₹{(summary?.total_paid ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-3 text-right text-red-600 dark:text-red-400 whitespace-nowrap">
+                        ₹{(summary?.total_remaining ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

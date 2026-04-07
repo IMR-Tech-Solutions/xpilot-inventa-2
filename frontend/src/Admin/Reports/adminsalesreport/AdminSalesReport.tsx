@@ -403,6 +403,30 @@ export default function AdminSalesReport() {
           pagination={{ pageSize: 20, showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: "No sales orders found." }}
+          summary={() => (
+            <Table.Summary.Row className="font-semibold bg-gray-50 dark:bg-gray-800/50">
+              <Table.Summary.Cell index={0} colSpan={5}>
+                <span className="text-xs uppercase text-gray-500">Total</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right">
+                <span className="font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                  ₹{(summary?.total_revenue ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={6} align="right">
+                <span className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                  ₹{(summary?.total_paid ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={7} align="right">
+                <span className="font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                  ₹{(summary?.total_remaining ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={8} />
+              <Table.Summary.Cell index={9} />
+            </Table.Summary.Row>
+          )}
         />
       </div>
 

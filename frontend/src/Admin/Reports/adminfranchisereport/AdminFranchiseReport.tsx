@@ -445,6 +445,40 @@ export default function AdminFranchiseReport() {
           pagination={{ pageSize: 20, showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: "No franchise orders found." }}
+          summary={() => {
+            const totalQty = orders.reduce((s, o) => s + o.total_qty, 0);
+            const totalValue = orders.reduce((s, o) => s + Number(o.total_line_total), 0);
+            const totalPaid = orders.reduce((s, o) => s + Number(o.amount_paid), 0);
+            const totalRemaining = orders.reduce((s, o) => s + Number(o.remaining_amount), 0);
+            return (
+              <Table.Summary.Row className="font-semibold bg-gray-50 dark:bg-gray-800/50">
+                <Table.Summary.Cell index={0} colSpan={2}>
+                  <span className="text-xs uppercase text-gray-500">Total</span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} align="right">
+                  <span className="font-bold text-gray-800 dark:text-gray-200">{totalQty}</span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={3} align="right">
+                  <span className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                    ₹{totalValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={4} />
+                <Table.Summary.Cell index={5} />
+                <Table.Summary.Cell index={6} align="right">
+                  <span className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                    ₹{totalPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={7} align="right">
+                  <span className="font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
+                    ₹{totalRemaining.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={8} />
+              </Table.Summary.Row>
+            );
+          }}
           expandable={{
             expandedRowRender: (order) => (
               <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50">

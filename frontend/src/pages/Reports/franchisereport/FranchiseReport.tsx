@@ -379,6 +379,25 @@ export default function FranchiseReport() {
                       </>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 font-semibold">
+                      <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300 uppercase" colSpan={2}>Total</td>
+                      <td className="py-3 px-3 text-right text-gray-900 dark:text-white">
+                        {orders.reduce((s, o) => s + o.total_qty, 0)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-green-600 dark:text-green-400 whitespace-nowrap">
+                        ₹{orders.reduce((s, o) => s + Number(o.total_line_total), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td colSpan={2} />
+                      <td className="py-3 px-3 text-right text-green-600 dark:text-green-400 whitespace-nowrap">
+                        ₹{orders.reduce((s, o) => s + Number(o.amount_paid), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-3 text-right text-red-600 dark:text-red-400 whitespace-nowrap">
+                        ₹{orders.reduce((s, o) => s + Number(o.remaining_amount), 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
