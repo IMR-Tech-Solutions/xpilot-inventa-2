@@ -21,6 +21,7 @@ export interface UnitData {
   user: number;
   user_name: string;
   unitName: string;
+  weight_kg: number | null;
 }
 
 const ViewUnit = () => {
@@ -74,6 +75,16 @@ const ViewUnit = () => {
       render: (name: string) => (
         <span className="truncate text-gray-800 dark:text-white/90">
           {name || "N/A"}
+        </span>
+      ),
+    },
+    {
+      title: "Weight per Bag (kg)",
+      dataIndex: "weight_kg",
+      key: "weight_kg",
+      render: (w: number | null) => (
+        <span className="text-gray-700 dark:text-white/80">
+          {w != null ? `${w} kg` : "—"}
         </span>
       ),
     },

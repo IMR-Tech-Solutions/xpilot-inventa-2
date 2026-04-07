@@ -45,7 +45,14 @@ class StockEntry(models.Model):
         blank=True,
         related_name='stock_entries'
     )
-    broker_commission_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=0.00)
+    broker_commission_rate = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, default=0.00,
+        help_text="Commission per bag/unit (e.g. 5 for ₹5 per bag)"
+    )
+    broker_commission_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, default=0.00,
+        help_text="Total commission = rate × quantity (auto-calculated)"
+    )
 
     manufacture_date = models.DateField(default=timezone.now)
 

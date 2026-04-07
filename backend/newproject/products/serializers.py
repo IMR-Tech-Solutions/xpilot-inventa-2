@@ -6,6 +6,7 @@ class ProductSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
     unit_name = serializers.SerializerMethodField()
+    unit_weight_kg = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -22,6 +23,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "unit",
             "unit_name",
+            "unit_weight_kg",
             "selling_price",
             "current_stock",
             "low_stock_threshold",
@@ -30,7 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "user", "user_name", "category_name", "unit_name", "current_stock", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "user_name", "category_name", "unit_name", "unit_weight_kg", "current_stock", "created_at", "updated_at"]
 
     def get_user_name(self, obj):
         if obj.user:
@@ -46,6 +48,11 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.unit and hasattr(obj.unit, 'unitName'):
             return obj.unit.unitName
         return ""
+
+    def get_unit_weight_kg(self, obj):
+        if obj.unit and obj.unit.weight_kg is not None:
+            return float(obj.unit.weight_kg)
+        return None
 
     def validate(self, data):
         user = self.instance.user if self.instance else self.context['request'].user
@@ -74,7 +81,7 @@ class ProductUnitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductUnit
-        fields = ['id', 'user', 'user_name', 'unitName']
+        fields = ['id', 'user', 'user_name', 'unitName', 'weight_kg']
         read_only_fields = ['id', 'user', 'user_name']
 
     def get_user_name(self, obj):

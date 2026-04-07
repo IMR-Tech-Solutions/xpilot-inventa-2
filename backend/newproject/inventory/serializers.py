@@ -49,8 +49,9 @@ class BulkStockEntrySerializer(serializers.Serializer):
     broker = serializers.PrimaryKeyRelatedField(
         queryset=Broker.objects.all(), required=False, allow_null=True
     )
-    broker_commission_amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, required=False, default=0
+    broker_commission_rate = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, default=0,
+        help_text="Rate per bag/unit (e.g. 5 for ₹5/bag)"
     )
     items = StockItemSerializer(many=True)
 
@@ -81,7 +82,7 @@ class BulkStockEntrySerializer(serializers.Serializer):
                     {'items': f"Product '{product.product_name}' does not belong to you."}
                 )
 
-        for field in ['transporter_cost', 'varne_cost', 'labour_cost', 'broker_commission_amount']:
+        for field in ['transporter_cost', 'varne_cost', 'labour_cost', 'broker_commission_rate']:
             val = attrs.get(field)
             if val is not None and val < 0:
                 raise serializers.ValidationError({field: f'{field} cannot be negative.'})
@@ -96,7 +97,7 @@ class BulkStockEntrySerializer(serializers.Serializer):
         varne_cost = validated_data.get('varne_cost', Decimal('0'))
         labour_cost = validated_data.get('labour_cost', Decimal('0'))
         broker = validated_data.get('broker')
-        broker_commission_amount = validated_data.get('broker_commission_amount', Decimal('0'))
+        broker_commission_rate = validated_data.get('broker_commission_rate', Decimal('0'))
         items = validated_data['items']
 
         with transaction.atomic():
@@ -121,6 +122,8 @@ class BulkStockEntrySerializer(serializers.Serializer):
                 cgst_amount = (purchase_price * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
                 sgst_amount = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
 
+                commission_amount = (broker_commission_rate * Decimal(str(quantity))).quantize(Decimal('0.01'))
+
                 entry = StockEntry.objects.create(
                     user=user,
                     vendor=vendor,
@@ -137,7 +140,8 @@ class BulkStockEntrySerializer(serializers.Serializer):
                     transporter=transporter,
                     transporter_cost=transporter_cost,
                     broker=broker,
-                    broker_commission_amount=broker_commission_amount,
+                    broker_commission_rate=broker_commission_rate,
+                    broker_commission_amount=commission_amount,
                     manufacture_date=item.get('manufacture_date'),
                 )
                 created_entries.append(entry)
@@ -244,15 +248,26 @@ class StockEntryListSerializer(serializers.ModelSerializer):
     broker_name = serializers.CharField(source='broker.broker_name', read_only=True)
     transporter_name = serializers.CharField(source='transporter.transporter_name', read_only=True)
     invoice_number = serializers.CharField(source='vendor_invoice.invoice_number', read_only=True)
+    tonnes = serializers.SerializerMethodField()
 
     class Meta:
         model = StockEntry
         fields = [
             'id', 'product', 'product_name', 'vendor', 'vendor_name',
-            'quantity', 'purchase_price', 'broker', 'broker_name',
+            'quantity', 'tonnes', 'purchase_price', 'broker', 'broker_name',
+            'broker_commission_rate', 'broker_commission_amount',
             'transporter', 'transporter_name', 'invoice_number',
             'manufacture_date', 'created_at',
         ]
+
+    def get_tonnes(self, obj):
+        try:
+            weight_kg = obj.product.unit.weight_kg if obj.product and obj.product.unit else None
+            if weight_kg and weight_kg > 0:
+                return round(float(obj.quantity * weight_kg) / 1000, 4)
+        except Exception:
+            pass
+        return None
 
 
 class StockEntryDetailSerializer(serializers.ModelSerializer):
@@ -261,19 +276,29 @@ class StockEntryDetailSerializer(serializers.ModelSerializer):
     broker_name = serializers.CharField(source='broker.broker_name', read_only=True)
     transporter_name = serializers.CharField(source='transporter.transporter_name', read_only=True)
     invoice_number = serializers.CharField(source='vendor_invoice.invoice_number', read_only=True)
+    tonnes = serializers.SerializerMethodField()
 
     class Meta:
         model = StockEntry
         fields = [
             'id', 'product', 'product_name', 'vendor', 'vendor_name',
             'vendor_invoice', 'invoice_number',
-            'quantity', 'purchase_price',
+            'quantity', 'tonnes', 'purchase_price',
             'cgst_percentage', 'cgst', 'sgst_percentage', 'sgst',
             'varne_cost', 'labour_cost',
             'transporter', 'transporter_name', 'transporter_cost',
-            'broker', 'broker_name', 'broker_commission_amount',
+            'broker', 'broker_name', 'broker_commission_rate', 'broker_commission_amount',
             'manufacture_date', 'created_at',
         ]
+
+    def get_tonnes(self, obj):
+        try:
+            weight_kg = obj.product.unit.weight_kg if obj.product and obj.product.unit else None
+            if weight_kg and weight_kg > 0:
+                return round(float(obj.quantity * weight_kg) / 1000, 4)
+        except Exception:
+            pass
+        return None
 
 
 class StockEntryUpdateSerializer(serializers.ModelSerializer):
@@ -283,12 +308,14 @@ class StockEntryUpdateSerializer(serializers.ModelSerializer):
             'cgst_percentage', 'cgst', 'sgst_percentage', 'sgst',
             'varne_cost', 'labour_cost',
             'transporter', 'transporter_cost',
-            'broker', 'broker_commission_amount',
+            'broker', 'broker_commission_rate', 'broker_commission_amount',
             'manufacture_date',
         ]
 
     def validate(self, attrs):
-        for field in ['cgst_percentage', 'cgst', 'sgst_percentage', 'sgst', 'varne_cost', 'labour_cost', 'transporter_cost', 'broker_commission_amount']:
+        for field in ['cgst_percentage', 'cgst', 'sgst_percentage', 'sgst',
+                      'varne_cost', 'labour_cost', 'transporter_cost',
+                      'broker_commission_rate', 'broker_commission_amount']:
             val = attrs.get(field)
             if val is not None and val < 0:
                 raise serializers.ValidationError({field: f'{field} cannot be negative.'})
@@ -302,4 +329,8 @@ class StockEntryUpdateSerializer(serializers.ModelSerializer):
         if 'sgst_percentage' in validated_data:
             sgst_pct = validated_data['sgst_percentage'] or Decimal('0')
             validated_data['sgst'] = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+        # Recalculate commission amount if rate changed
+        if 'broker_commission_rate' in validated_data:
+            rate = validated_data['broker_commission_rate'] or Decimal('0')
+            validated_data['broker_commission_amount'] = (rate * Decimal(str(instance.quantity))).quantize(Decimal('0.01'))
         return super().update(instance, validated_data)

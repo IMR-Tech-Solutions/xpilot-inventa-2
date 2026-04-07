@@ -22,6 +22,7 @@ const EditUnit = ({
     if (unitData && visible) {
       form.setFieldsValue({
         unitName: unitData.unitName,
+        weight_kg: unitData.weight_kg ?? "",
       });
     }
   }, [unitData, visible, form]);
@@ -32,6 +33,9 @@ const EditUnit = ({
       const unitID = unitData.id;
       const formData = new FormData();
       formData.append("unitName", values.unitName);
+      if (values.weight_kg !== "" && values.weight_kg != null) {
+        formData.append("weight_kg", String(values.weight_kg));
+      }
       await updateUnitService(unitID, formData);
       toast.success("Unit Updated Successfully");
       fetchAllUnits();
@@ -65,7 +69,14 @@ const EditUnit = ({
             { min: 2, message: "Unit name must be at least 2 characters!" },
           ]}
         >
-          <Input placeholder="Enter Unit name" />
+          <Input placeholder="e.g. 50 Kg Bag" />
+        </Form.Item>
+        <Form.Item
+          label="Weight per Bag (kg)"
+          name="weight_kg"
+          extra="Used to auto-calculate tonnes from bags. Leave blank if not applicable."
+        >
+          <Input type="number" min={0} step={0.001} placeholder="e.g. 50" />
         </Form.Item>
       </Form>
     </Modal>

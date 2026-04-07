@@ -10,6 +10,10 @@ def default_product_image():
 class ProductUnit(models.Model):
     user = models.ForeignKey(UserMaster, on_delete=models.CASCADE)
     unitName = models.CharField(max_length=100)
+    weight_kg = models.DecimalField(
+        max_digits=8, decimal_places=3, null=True, blank=True,
+        help_text="Weight of one bag/unit in kg (e.g. 50 for a 50 kg bag)"
+    )
 
     def __str__(self):
         return self.unitName
