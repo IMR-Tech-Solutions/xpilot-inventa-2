@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getUserTransporterReportService } from "./transporterreportservice";
 import PageMeta from "../../../components/common/PageMeta";
 import { downloadCSV, downloadPDF } from "../../../utils/downloadUtils";
