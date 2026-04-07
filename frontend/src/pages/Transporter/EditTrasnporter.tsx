@@ -28,7 +28,10 @@ const EditTransporter = ({
         email: transporterData.email,
         gst_number: transporterData.gst_number,
         pan_number: transporterData.pan_number,
+        license_number: transporterData.license_number,
+        rc_number: transporterData.rc_number,
         vehicle_number: transporterData.vehicle_number,
+        vehicle_type: transporterData.vehicle_type,
         address: transporterData.address,
         city: transporterData.city,
         state: transporterData.state,
@@ -102,21 +105,42 @@ const EditTransporter = ({
           </Col>
         </Row>
 
-        {/* Tax & Vehicle Information */}
+        {/* Tax Information */}
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={12}>
             <Form.Item label="GST Number" name="gst_number">
               <Input placeholder="Enter GST number" />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={12}>
             <Form.Item label="PAN Number" name="pan_number">
               <Input placeholder="Enter PAN number" maxLength={10} />
             </Form.Item>
           </Col>
-          <Col span={8}>
+        </Row>
+
+        {/* Vehicle Information */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="License Number" name="license_number">
+              <Input placeholder="Enter license number" maxLength={50} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="RC Number" name="rc_number">
+              <Input placeholder="Enter RC number" maxLength={50} />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
             <Form.Item label="Vehicle Number" name="vehicle_number">
-              <Input placeholder="Enter vehicle number" />
+              <Input placeholder="e.g. MH12AB1234" maxLength={50} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="Vehicle Type" name="vehicle_type">
+              <Input placeholder="e.g. Truck, Tempo" maxLength={100} />
             </Form.Item>
           </Col>
         </Row>

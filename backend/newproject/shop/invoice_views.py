@@ -10,6 +10,25 @@ from django.utils.dateparse import parse_date
 from accounts.models import UserMaster
 from django.http import Http404
 
+def build_transporter_context(order):
+    """Return transporter delivery details dict for template context."""
+    t = order.delivery_transporter
+    if not t:
+        return {"has_transporter": False}
+    return {
+        "has_transporter": True,
+        "transporter_name": t.transporter_name or '',
+        "transporter_contact": t.contact_number or '',
+        "license_number": t.license_number or '',
+        "rc_number": t.rc_number or '',
+        "vehicle_number": t.vehicle_number or '',
+        "vehicle_type": t.vehicle_type or '',
+        "delivery_from": order.delivery_from or '',
+        "delivery_to": order.delivery_to or '',
+        "delivery_transporter_cost": float(order.delivery_transporter_cost) if order.delivery_transporter_cost else None,
+    }
+
+
 def format_date(date_val):
     if not date_val:
         return ''
@@ -27,7 +46,7 @@ class ManagerOrderInvoicePDFBaseView(APIView):
 
     def generate_pdf(self, request, order_id):
         try:
-            order = ShopOwnerOrders.objects.get(id=order_id)
+            order = ShopOwnerOrders.objects.select_related('delivery_transporter').get(id=order_id)
         except ShopOwnerOrders.DoesNotExist:
             raise Http404("Order not found")
 
@@ -36,25 +55,17 @@ class ManagerOrderInvoicePDFBaseView(APIView):
 
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
-            ).select_related('product')
-    
-        if not manager_items.exists():
-            return None, None
-        
-        manager_items = order.order_items.filter(
-            fulfilled_by_manager=request.user
         ).select_related('product')
-        
+
         if not manager_items.exists():
             return None, None
 
         items = []
         total_amount = 0
-        
+
         for item in manager_items:
             item_total = item.fulfilled_quantity * item.actual_price
             total_amount += item_total
-            
             items.append({
                 "product_name": item.product.product_name,
                 "sku": item.product.sku_code or 'N/A',
@@ -69,19 +80,16 @@ class ManagerOrderInvoicePDFBaseView(APIView):
             "order_number": order.order_number,
             "date": format_date(order.created_at),
             "year": order.created_at.year if order.created_at else '',
-            # Customer info (Shop Owner is customer from manager POV)
             "customer_name": f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
             "customer_phone": order.shop_owner.mobile_number or 'N/A',
             "customer_email": order.shop_owner.email or 'N/A',
-            # Seller info (Manager)
             "seller_name": f"{request.user.first_name} {request.user.last_name}".strip(),
             "seller_phone": request.user.mobile_number or 'N/A',
             "seller_email": request.user.email or 'N/A',
-            # Totals
             "subtotal": float(total_amount),
             "total_amount": float(total_amount),
-            # Items
             "items": items,
+            "transporter": build_transporter_context(order),
         }
 
         html_string = render_to_string("manager_invoice.html", context)
@@ -114,7 +122,7 @@ class ManagerOrderInvoicePDFDownloadView(ManagerOrderInvoicePDFBaseView):
         response.write(pdf_result)
         return response
 
-class ManagerOrderDeliveryChallanPDFDownloadView(APIView):
+class ManagerOrderDeliveryChallanPDFDownloadView(ManagerOrderInvoicePDFBaseView):
     permission_classes = [IsAuthenticated, HasModuleAccess]
     required_permission = "shop-request"
 
@@ -130,7 +138,7 @@ class ManagerOrderDeliveryChallanPDFDownloadView(APIView):
 
     def generate_delivery_challan_pdf(self, request, order_id):
         try:
-            order = ShopOwnerOrders.objects.get(id=order_id)
+            order = ShopOwnerOrders.objects.select_related('delivery_transporter').get(id=order_id)
         except ShopOwnerOrders.DoesNotExist:
             raise Http404("Order not found")
 
@@ -140,12 +148,11 @@ class ManagerOrderDeliveryChallanPDFDownloadView(APIView):
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
         ).select_related('product')
-    
+
         if not manager_items.exists():
             return None, None
 
         items = []
-        
         for item in manager_items:
             items.append({
                 "product_name": item.product.product_name,
@@ -158,16 +165,14 @@ class ManagerOrderDeliveryChallanPDFDownloadView(APIView):
             "order_number": order.order_number,
             "date": format_date(order.created_at),
             "year": order.created_at.year if order.created_at else '',
-            # Customer info (Shop Owner is customer from manager POV)
             "customer_name": f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
             "customer_phone": order.shop_owner.mobile_number or 'N/A',
             "customer_email": order.shop_owner.email or 'N/A',
-            # Seller info (Manager)
             "seller_name": f"{request.user.first_name} {request.user.last_name}".strip(),
             "seller_phone": request.user.mobile_number or 'N/A',
             "seller_email": request.user.email or 'N/A',
-            # Items
             "items": items,
+            "transporter": build_transporter_context(order),
         }
 
         html_string = render_to_string("delivery_challan.html", context)
@@ -186,7 +191,7 @@ class ShopOwnerOrderItemInvoicePDFBaseView(APIView):
 
     def generate_pdf(self, request, order_id, item_id):
         order = get_object_or_404(
-            ShopOwnerOrders,
+            ShopOwnerOrders.objects.select_related('delivery_transporter'),
             id=order_id,
             shop_owner=request.user
         )
@@ -227,11 +232,10 @@ class ShopOwnerOrderItemInvoicePDFBaseView(APIView):
             "seller_name": f"{manager.first_name} {manager.last_name}".strip(),
             "seller_phone": manager.mobile_number or 'N/A',
             "seller_email": manager.email or 'N/A',
-            # Totals
             "subtotal": float(item_total),
             "total_amount": float(item_total),
-            # Items
             "items": items,
+            "transporter": build_transporter_context(order),
         }
 
         html_string = render_to_string("shopowner_manager_invoice.html", context)

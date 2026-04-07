@@ -875,6 +875,21 @@ class ManagerUpdateOrderStatusView(APIView):
 
         old_status = order.status
         order.status = new_status
+
+        # If moving to delivery_in_progress, save optional transporter/delivery details
+        if new_status == 'delivery_in_progress':
+            from transport.models import Transporter
+            transporter_id = request.data.get('delivery_transporter')
+            if transporter_id:
+                try:
+                    order.delivery_transporter = Transporter.objects.get(id=transporter_id)
+                except Transporter.DoesNotExist:
+                    pass
+            order.delivery_from = request.data.get('delivery_from') or None
+            order.delivery_to = request.data.get('delivery_to') or None
+            cost = request.data.get('delivery_transporter_cost')
+            order.delivery_transporter_cost = cost if cost not in (None, '', 0, '0') else None
+
         order.save()
 
         return Response({

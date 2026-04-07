@@ -11,6 +11,8 @@ import {
   InputNumber,
   Radio,
   Descriptions,
+  Input,
+  Divider,
 } from "antd";
 import ButtonComponentCard from "../../Admin/Components/ButtonComponentCard";
 import {
@@ -21,16 +23,20 @@ import {
   updateManagerOrderStatusService,
   updateShopOrderPaymentService,
 } from "../../services/shopservices";
+import { getMyActiveTransporterService } from "../../services/transporterservices";
 import {
   EyeOutlined,
   DownloadOutlined,
   TruckOutlined,
   DollarOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { toast } from "react-toastify";
 import { handleError } from "../../utils/handleError";
 import dayjs from "dayjs";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { all_routes } from "../../Router/allroutes";
+import { TransporterData } from "../../types/types";
 
 interface ShopOrder {
   id: number;
@@ -86,6 +92,17 @@ const AllShopOrders = () => {
     };
   }>({});
 
+  // ── Delivery modal state ───────────────────────────────────────────────────
+  const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
+  const [deliveryOrderId, setDeliveryOrderId] = useState<number | null>(null);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [transporters, setTransporters] = useState<TransporterData[]>([]);
+  const [selectedTransporter, setSelectedTransporter] = useState<TransporterData | null>(null);
+  const [deliveryFrom, setDeliveryFrom] = useState("");
+  const [deliveryTo, setDeliveryTo] = useState("");
+  const [deliveryCost, setDeliveryCost] = useState("");
+  const [deliveryForm] = Form.useForm();
+
   // ── Payment modal state ────────────────────────────────────────────────────
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<ShopOrder | null>(null);
@@ -124,12 +141,33 @@ const AllShopOrders = () => {
 
   // ── Status update ──────────────────────────────────────────────────────────
   const handleStatusChange = async (orderID: number, newStatus: string) => {
+    if (newStatus === "delivery_in_progress") {
+      // Open delivery modal first — fetch transporters lazily
+      if (transporters.length === 0) {
+        try {
+          const data = await getMyActiveTransporterService();
+          setTransporters(data);
+        } catch (_) {}
+      }
+      setDeliveryOrderId(orderID);
+      setSelectedTransporter(null);
+      setDeliveryFrom("");
+      setDeliveryTo("");
+      setDeliveryCost("");
+      deliveryForm.resetFields();
+      setDeliveryModalOpen(true);
+      return;
+    }
+    await _doStatusUpdate(orderID, newStatus);
+  };
+
+  const _doStatusUpdate = async (orderID: number, newStatus: string, deliveryDetails?: object) => {
     setLoadingButtons((prev) => ({
       ...prev,
       [orderID]: { ...prev[orderID], status: true },
     }));
     try {
-      await updateManagerOrderStatusService(orderID, newStatus);
+      await updateManagerOrderStatusService(orderID, newStatus, deliveryDetails);
       setShopOrders((prev) =>
         prev.map((o) =>
           o.id === orderID ? { ...o, order_status: newStatus } : o
@@ -143,6 +181,24 @@ const AllShopOrders = () => {
         ...prev,
         [orderID]: { ...prev[orderID], status: false },
       }));
+    }
+  };
+
+  const handleDeliveryConfirm = async () => {
+    if (!deliveryOrderId) return;
+    setDeliveryLoading(true);
+    try {
+      const deliveryDetails: Record<string, any> = {};
+      if (selectedTransporter) deliveryDetails.delivery_transporter = selectedTransporter.id;
+      if (deliveryFrom.trim()) deliveryDetails.delivery_from = deliveryFrom.trim();
+      if (deliveryTo.trim()) deliveryDetails.delivery_to = deliveryTo.trim();
+      if (deliveryCost) deliveryDetails.delivery_transporter_cost = deliveryCost;
+      await _doStatusUpdate(deliveryOrderId, "delivery_in_progress", deliveryDetails);
+      setDeliveryModalOpen(false);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setDeliveryLoading(false);
     }
   };
 
@@ -430,6 +486,111 @@ const AllShopOrders = () => {
           locale={{ emptyText: "No shop orders found." }}
         />
       </ButtonComponentCard>
+
+      {/* ── Delivery Modal ────────────────────────────────────────────────── */}
+      <Modal
+        title="Set Delivery in Progress"
+        open={deliveryModalOpen}
+        onCancel={() => setDeliveryModalOpen(false)}
+        onOk={handleDeliveryConfirm}
+        okText="Confirm & Update Status"
+        confirmLoading={deliveryLoading}
+        width={520}
+      >
+        <p className="text-xs text-gray-500 mb-4">
+          Optionally fill transporter & route details. All fields are optional — you can skip and confirm directly.
+        </p>
+
+        <Form form={deliveryForm} layout="vertical">
+          {/* Transporter selector */}
+          <Form.Item label="Transporter">
+            <Select
+              allowClear
+              showSearch
+              placeholder="Select transporter (optional)"
+              optionFilterProp="label"
+              value={selectedTransporter?.id ?? undefined}
+              onChange={(val) => {
+                const t = transporters.find((t) => t.id === val) ?? null;
+                setSelectedTransporter(t);
+              }}
+              options={transporters.map((t) => ({
+                value: t.id,
+                label: `${t.transporter_name}${t.contact_number ? ` — ${t.contact_number}` : ""}`,
+              }))}
+              dropdownRender={(menu) => (
+                <>
+                  {menu}
+                  <Divider style={{ margin: "4px 0" }} />
+                  <div className="px-2 py-1">
+                    <Button
+                      type="link"
+                      icon={<PlusOutlined />}
+                      size="small"
+                      onClick={() => window.open(all_routes.addtransporter, "_blank")}
+                    >
+                      Add New Transporter
+                    </Button>
+                  </div>
+                </>
+              )}
+            />
+          </Form.Item>
+
+          {/* Auto-filled transporter details */}
+          {selectedTransporter && (
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-4 grid grid-cols-2 gap-2 text-xs">
+              {selectedTransporter.license_number && (
+                <div><span className="text-gray-500">License No.:</span> <strong>{selectedTransporter.license_number}</strong></div>
+              )}
+              {selectedTransporter.rc_number && (
+                <div><span className="text-gray-500">RC No.:</span> <strong>{selectedTransporter.rc_number}</strong></div>
+              )}
+              {selectedTransporter.vehicle_number && (
+                <div><span className="text-gray-500">Vehicle No.:</span> <strong>{selectedTransporter.vehicle_number}</strong></div>
+              )}
+              {selectedTransporter.vehicle_type && (
+                <div><span className="text-gray-500">Vehicle Type:</span> <strong>{selectedTransporter.vehicle_type}</strong></div>
+              )}
+              {selectedTransporter.contact_number && (
+                <div><span className="text-gray-500">Contact:</span> <strong>{selectedTransporter.contact_number}</strong></div>
+              )}
+            </div>
+          )}
+
+          {/* Route */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Form.Item label="From (Origin)">
+              <Input
+                placeholder="e.g. Pune"
+                value={deliveryFrom}
+                onChange={(e) => setDeliveryFrom(e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="To (Destination)">
+              <Input
+                placeholder="e.g. Mumbai"
+                value={deliveryTo}
+                onChange={(e) => setDeliveryTo(e.target.value)}
+              />
+            </Form.Item>
+          </div>
+
+          {/* Cost */}
+          <Form.Item label="Transporter Cost (₹)">
+            <InputNumber
+              min={0}
+              step={0.01}
+              precision={2}
+              style={{ width: "100%" }}
+              prefix="₹"
+              placeholder="0.00"
+              value={deliveryCost ? parseFloat(deliveryCost) : undefined}
+              onChange={(val) => setDeliveryCost(val != null ? String(val) : "")}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* ── Payment Modal ─────────────────────────────────────────────────── */}
       <Modal

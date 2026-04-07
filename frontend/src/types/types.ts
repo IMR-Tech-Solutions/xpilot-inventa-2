@@ -155,7 +155,10 @@ export interface TransporterData {
   email: string;
   gst_number?: string | null;
   pan_number?: string | null;
+  license_number?: string | null;
+  rc_number?: string | null;
   vehicle_number?: string | null;
+  vehicle_type?: string | null;
   address?: string | null;
   state?: string | null;
   city?: string | null;

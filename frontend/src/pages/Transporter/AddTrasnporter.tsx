@@ -19,6 +19,10 @@ const AddTransporter = () => {
     gst_number: "",
     pan_number: "",
     registration_number: "",
+    license_number: "",
+    rc_number: "",
+    vehicle_number: "",
+    vehicle_type: "",
     address: "",
     state: "",
     city: "",
@@ -77,6 +81,10 @@ const AddTransporter = () => {
         gst_number: "",
         pan_number: "",
         registration_number: "",
+        license_number: "",
+        rc_number: "",
+        vehicle_number: "",
+        vehicle_type: "",
         address: "",
         state: "",
         city: "",
@@ -192,6 +200,54 @@ const AddTransporter = () => {
                 className="input-field"
                 maxLength={50}
                 placeholder="Enter registration number"
+              />
+            </div>
+            <div>
+              <Label>License Number</Label>
+              <input
+                type="text"
+                name="license_number"
+                value={transporterData.license_number}
+                onChange={handleChange}
+                className="input-field"
+                maxLength={50}
+                placeholder="Enter license number"
+              />
+            </div>
+            <div>
+              <Label>RC Number</Label>
+              <input
+                type="text"
+                name="rc_number"
+                value={transporterData.rc_number}
+                onChange={handleChange}
+                className="input-field"
+                maxLength={50}
+                placeholder="Enter RC number"
+              />
+            </div>
+            <div>
+              <Label>Vehicle Number</Label>
+              <input
+                type="text"
+                name="vehicle_number"
+                value={transporterData.vehicle_number}
+                onChange={handleChange}
+                className="input-field"
+                maxLength={50}
+                placeholder="e.g. MH12AB1234"
+              />
+            </div>
+            <div>
+              <Label>Vehicle Type</Label>
+              <input
+                type="text"
+                name="vehicle_type"
+                value={transporterData.vehicle_type}
+                onChange={handleChange}
+                className="input-field"
+                maxLength={100}
+                placeholder="e.g. Truck, Mini Truck, Tempo"
               />
             </div>
           </div>

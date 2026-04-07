@@ -192,6 +192,28 @@
         <p><strong>Email:</strong> {{ seller_email|default:"N/A" }}</p>
       </div>
 
+      <!-- Transporter / Delivery Info -->
+      {% if transporter.has_transporter %}
+      <div class="info-section">
+        <h3>Transporter &amp; Delivery Details</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <p><strong>Transporter:</strong> {{ transporter.transporter_name }}</p>
+          <p><strong>Contact:</strong> {{ transporter.transporter_contact|default:"N/A" }}</p>
+          <p><strong>License No.:</strong> {{ transporter.license_number|default:"N/A" }}</p>
+          <p><strong>RC No.:</strong> {{ transporter.rc_number|default:"N/A" }}</p>
+          <p><strong>Vehicle No.:</strong> {{ transporter.vehicle_number|default:"N/A" }}</p>
+          <p><strong>Vehicle Type:</strong> {{ transporter.vehicle_type|default:"N/A" }}</p>
+          {% if transporter.delivery_from or transporter.delivery_to %}
+          <p><strong>From:</strong> {{ transporter.delivery_from|default:"N/A" }}</p>
+          <p><strong>To:</strong> {{ transporter.delivery_to|default:"N/A" }}</p>
+          {% endif %}
+          {% if transporter.delivery_transporter_cost %}
+          <p><strong>Transport Cost:</strong> ₹{{ transporter.delivery_transporter_cost }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Items Table -->
       <table>
         <thead>

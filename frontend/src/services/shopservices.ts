@@ -191,11 +191,17 @@ export const getmanagershoporderdeliverychalandownload = async (
 // Manager updates order status (packing | delivery_in_progress | cancelled)
 export const updateManagerOrderStatusService = async (
   orderID: number,
-  newStatus: string
+  newStatus: string,
+  deliveryDetails?: {
+    delivery_transporter?: number | null;
+    delivery_from?: string;
+    delivery_to?: string;
+    delivery_transporter_cost?: string | number;
+  }
 ) => {
   const response = await api.patch(
     `manager/orders/${orderID}/update-status/`,
-    { status: newStatus }
+    { status: newStatus, ...deliveryDetails }
   );
   return response.data;
 };
