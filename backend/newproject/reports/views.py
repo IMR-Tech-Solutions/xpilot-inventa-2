@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db import models
 from django.db.models import Sum, Count, Q
 
 from accounts.premissions import IsAdminRole, HasModuleAccess
@@ -502,6 +503,234 @@ class AdminBrokerReportView(APIView):
             },
             'entries': entries,
             'brokers': brokers,
+            'users': users,
+        })
+
+
+class UserTransporterReportView(APIView):
+    """Logged-in user: all transporter usage — both stock purchases and franchise deliveries."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "view-purchase-report"
+
+    def get(self, request):
+        from transport.models import Transporter
+        from shop.models import ShopOwnerOrders
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        transporter_id = request.query_params.get('transporter_id')
+
+        # ── Stock purchase entries ────────────────────────────────────────────
+        stock_qs = StockEntry.objects.filter(
+            user=request.user, transporter__isnull=False
+        ).select_related('transporter', 'vendor', 'vendor_invoice', 'product')
+
+        if start_date:
+            stock_qs = stock_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            stock_qs = stock_qs.filter(created_at__date__lte=end_date)
+        if transporter_id:
+            stock_qs = stock_qs.filter(transporter__id=transporter_id)
+
+        # ── Franchise delivery orders ─────────────────────────────────────────
+        delivery_qs = ShopOwnerOrders.objects.filter(
+            order_items__fulfilled_by_manager=request.user,
+            delivery_transporter__isnull=False,
+        ).distinct().select_related('delivery_transporter', 'shop_owner')
+
+        if start_date:
+            delivery_qs = delivery_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            delivery_qs = delivery_qs.filter(created_at__date__lte=end_date)
+        if transporter_id:
+            delivery_qs = delivery_qs.filter(delivery_transporter__id=transporter_id)
+
+        entries = []
+        total_stock_cost = 0.0
+        total_delivery_cost = 0.0
+
+        for e in stock_qs.order_by('-created_at'):
+            cost = float(e.transporter_cost or 0)
+            total_stock_cost += cost
+            entries.append({
+                'id': f'stock-{e.id}',
+                'type': 'Stock Purchase',
+                'date': e.created_at,
+                'reference': e.vendor_invoice.invoice_number if e.vendor_invoice else f'SE-{e.id}',
+                'transporter_id': e.transporter.id,
+                'transporter_name': e.transporter.transporter_name,
+                'transporter_contact': e.transporter.contact_number or '',
+                'vehicle_number': e.transporter.vehicle_number or '',
+                'vehicle_type': e.transporter.vehicle_type or '',
+                'from_location': '',
+                'to_location': '',
+                'transporter_cost': cost,
+                'notes': e.vendor.vendor_name if e.vendor else '',
+            })
+
+        for o in delivery_qs.order_by('-created_at'):
+            cost = float(o.delivery_transporter_cost or 0)
+            total_delivery_cost += cost
+            entries.append({
+                'id': f'delivery-{o.id}',
+                'type': 'Franchise Delivery',
+                'date': o.created_at,
+                'reference': o.order_number,
+                'transporter_id': o.delivery_transporter.id,
+                'transporter_name': o.delivery_transporter.transporter_name,
+                'transporter_contact': o.delivery_transporter.contact_number or '',
+                'vehicle_number': o.delivery_transporter.vehicle_number or '',
+                'vehicle_type': o.delivery_transporter.vehicle_type or '',
+                'from_location': o.delivery_from or '',
+                'to_location': o.delivery_to or '',
+                'transporter_cost': cost,
+                'notes': f"{o.shop_owner.first_name} {o.shop_owner.last_name}".strip(),
+            })
+
+        # Sort combined list by date desc
+        entries.sort(key=lambda x: x['date'], reverse=True)
+
+        # Transporters this user has used (either source)
+        used_transporter_ids = set(
+            list(stock_qs.values_list('transporter__id', flat=True)) +
+            list(delivery_qs.values_list('delivery_transporter__id', flat=True))
+        )
+        transporters = list(
+            Transporter.objects.filter(id__in=used_transporter_ids)
+            .order_by('transporter_name')
+            .values('id', 'transporter_name', 'contact_number')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': len(entries),
+                'total_stock_cost': round(total_stock_cost, 2),
+                'total_delivery_cost': round(total_delivery_cost, 2),
+                'total_cost': round(total_stock_cost + total_delivery_cost, 2),
+            },
+            'entries': entries,
+            'transporters': transporters,
+        })
+
+
+class AdminTransporterReportView(APIView):
+    """Admin: all transporter usage system-wide."""
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        from transport.models import Transporter
+        from shop.models import ShopOwnerOrders
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        transporter_id = request.query_params.get('transporter_id')
+        user_id = request.query_params.get('user_id')
+
+        # ── Stock purchase entries ────────────────────────────────────────────
+        stock_qs = StockEntry.objects.filter(
+            transporter__isnull=False
+        ).select_related('transporter', 'vendor', 'vendor_invoice', 'product', 'user')
+
+        if start_date:
+            stock_qs = stock_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            stock_qs = stock_qs.filter(created_at__date__lte=end_date)
+        if transporter_id:
+            stock_qs = stock_qs.filter(transporter__id=transporter_id)
+        if user_id:
+            stock_qs = stock_qs.filter(user__id=user_id)
+
+        # ── Franchise delivery orders ─────────────────────────────────────────
+        delivery_qs = ShopOwnerOrders.objects.filter(
+            delivery_transporter__isnull=False,
+        ).select_related('delivery_transporter', 'shop_owner')
+
+        if start_date:
+            delivery_qs = delivery_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            delivery_qs = delivery_qs.filter(created_at__date__lte=end_date)
+        if transporter_id:
+            delivery_qs = delivery_qs.filter(delivery_transporter__id=transporter_id)
+
+        entries = []
+        total_stock_cost = 0.0
+        total_delivery_cost = 0.0
+
+        for e in stock_qs.order_by('-created_at'):
+            cost = float(e.transporter_cost or 0)
+            total_stock_cost += cost
+            entries.append({
+                'id': f'stock-{e.id}',
+                'type': 'Stock Purchase',
+                'date': e.created_at,
+                'reference': e.vendor_invoice.invoice_number if e.vendor_invoice else f'SE-{e.id}',
+                'added_by': f"{e.user.first_name} {e.user.last_name}".strip(),
+                'added_by_id': e.user.id,
+                'transporter_id': e.transporter.id,
+                'transporter_name': e.transporter.transporter_name,
+                'transporter_contact': e.transporter.contact_number or '',
+                'vehicle_number': e.transporter.vehicle_number or '',
+                'vehicle_type': e.transporter.vehicle_type or '',
+                'from_location': '',
+                'to_location': '',
+                'transporter_cost': cost,
+                'notes': e.vendor.vendor_name if e.vendor else '',
+            })
+
+        for o in delivery_qs.order_by('-created_at'):
+            cost = float(o.delivery_transporter_cost or 0)
+            total_delivery_cost += cost
+            # manager who fulfilled is in order_items; use first fulfilled manager as "added_by"
+            first_item = o.order_items.filter(fulfilled_by_manager__isnull=False).first()
+            mgr = first_item.fulfilled_by_manager if first_item else None
+            entries.append({
+                'id': f'delivery-{o.id}',
+                'type': 'Franchise Delivery',
+                'date': o.created_at,
+                'reference': o.order_number,
+                'added_by': f"{mgr.first_name} {mgr.last_name}".strip() if mgr else '—',
+                'added_by_id': mgr.id if mgr else None,
+                'transporter_id': o.delivery_transporter.id,
+                'transporter_name': o.delivery_transporter.transporter_name,
+                'transporter_contact': o.delivery_transporter.contact_number or '',
+                'vehicle_number': o.delivery_transporter.vehicle_number or '',
+                'vehicle_type': o.delivery_transporter.vehicle_type or '',
+                'from_location': o.delivery_from or '',
+                'to_location': o.delivery_to or '',
+                'transporter_cost': cost,
+                'notes': f"{o.shop_owner.first_name} {o.shop_owner.last_name}".strip(),
+            })
+
+        entries.sort(key=lambda x: x['date'], reverse=True)
+
+        used_transporter_ids = set(
+            list(stock_qs.values_list('transporter__id', flat=True)) +
+            list(delivery_qs.values_list('delivery_transporter__id', flat=True))
+        )
+        transporters = list(
+            Transporter.objects.filter(id__in=used_transporter_ids)
+            .order_by('transporter_name')
+            .values('id', 'transporter_name', 'contact_number')
+        )
+        users = list(
+            UserMaster.objects
+            .filter(
+                models.Q(stock_entries__transporter__isnull=False) |
+                models.Q(fulfilled_shop_orders__order__delivery_transporter__isnull=False)
+            )
+            .distinct()
+            .values('id', 'first_name', 'last_name', 'business_name')
+        )
+
+        return Response({
+            'summary': {
+                'total_entries': len(entries),
+                'total_stock_cost': round(total_stock_cost, 2),
+                'total_delivery_cost': round(total_delivery_cost, 2),
+                'total_cost': round(total_stock_cost + total_delivery_cost, 2),
+            },
+            'entries': entries,
+            'transporters': transporters,
             'users': users,
         })
 

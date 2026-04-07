@@ -108,6 +108,11 @@ const reportItems: NavItem[] = [
         path: admin_routes.adminfranchisereport,
         module: admin_modules.adminfranchisereport,
       },
+      {
+        name: "Transporter Report",
+        path: admin_routes.admintransporterreport,
+        module: admin_modules.admintransportereport,
+      },
     ],
   },
 ];

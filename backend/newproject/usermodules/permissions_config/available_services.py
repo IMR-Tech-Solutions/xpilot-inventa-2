@@ -184,4 +184,9 @@ AVAILABLE_SERVICES = [
         "method": "view-franchise-report",
         "module": "franchisereport",
     },
+    {
+        "name": "Transporter Report",
+        "method": "view-purchase-report",
+        "module": "transportereport",
+    },
 ]

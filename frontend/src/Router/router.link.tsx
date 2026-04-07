@@ -22,6 +22,13 @@ const BrokerReport = lazy(
 const AdminBrokerReport = lazy(
   () => import("../Admin/Reports/adminbrokerreport/AdminBrokerReport"),
 );
+const TransporterReport = lazy(
+  () => import("../pages/Reports/transporterreport/TransporterReport"),
+);
+const AdminTransporterReport = lazy(
+  () =>
+    import("../Admin/Reports/admintransporterreport/AdminTransporterReport"),
+);
 const FranchiseReport = lazy(
   () => import("../pages/Reports/franchisereport/FranchiseReport"),
 );
@@ -473,6 +480,13 @@ export const websiteRoutes = [
     module: all_modules.franchisereport,
     element: <FranchiseReport />,
   },
+  {
+    id: "59",
+    name: "Transporter Report",
+    link: all_routes.transporterreport,
+    module: all_modules.transportereport,
+    element: <TransporterReport />,
+  },
 ];
 
 export const authRoutes = [
@@ -587,6 +601,13 @@ export const adminPanelRoutes = [
     link: admin_routes.adminfranchisereport,
     module: admin_modules.adminfranchisereport,
     element: <AdminFranchiseReport />,
+  },
+  {
+    id: "14",
+    name: "Admin Transporter Report",
+    link: admin_routes.admintransporterreport,
+    module: admin_modules.admintransportereport,
+    element: <AdminTransporterReport />,
   },
 ];
 

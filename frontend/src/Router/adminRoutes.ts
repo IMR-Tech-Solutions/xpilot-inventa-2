@@ -11,5 +11,6 @@ export const admin_routes = {
   adminsalesreport: "/admin/reports/sales",
   adminpurchasereport: "/admin/reports/purchase",
   adminbrokerreport: "/admin/reports/broker",
+  admintransporterreport: "/admin/reports/transporter",
   adminfranchisereport: "/admin/reports/franchise",
 };

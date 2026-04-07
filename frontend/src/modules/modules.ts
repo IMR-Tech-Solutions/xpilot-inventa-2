@@ -32,4 +32,5 @@ export const all_modules = {
   purchasereport: "purchasereport",
   brokerreport: "brokerreport",
   franchisereport: "franchisereport",
+  transportereport: "transportereport",
 };
