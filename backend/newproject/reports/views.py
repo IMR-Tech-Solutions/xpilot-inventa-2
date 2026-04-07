@@ -367,7 +367,9 @@ class UserBrokerReportView(APIView):
         )
 
         entries = []
-        for e in qs.select_related('product', 'vendor', 'broker', 'transporter', 'vendor_invoice').order_by('-created_at'):
+        for e in qs.select_related('product__unit', 'vendor', 'broker', 'transporter', 'vendor_invoice').order_by('-created_at'):
+            weight_kg = e.product.unit.weight_kg if (e.product and e.product.unit and e.product.unit.weight_kg) else None
+            tonnes = round(float(e.quantity * weight_kg) / 1000, 4) if weight_kg else None
             entries.append({
                 'id': e.id,
                 'product_name': e.product.product_name,
@@ -379,6 +381,7 @@ class UserBrokerReportView(APIView):
                 'transporter': e.transporter.transporter_name if e.transporter else None,
                 'invoice_number': e.vendor_invoice.invoice_number if e.vendor_invoice else None,
                 'quantity': e.quantity,
+                'tonnes': tonnes,
                 'purchase_price': float(e.purchase_price),
                 'broker_commission_rate': float(e.broker_commission_rate or 0),
                 'broker_commission': float(e.broker_commission_amount or 0),
@@ -419,7 +422,7 @@ class AdminBrokerReportView(APIView):
 
     def get(self, request):
         qs = StockEntry.objects.filter(broker__isnull=False).select_related(
-            'user', 'product', 'vendor', 'broker', 'transporter', 'vendor_invoice'
+            'user', 'product__unit', 'vendor', 'broker', 'transporter', 'vendor_invoice'
         )
 
         start_date = request.query_params.get('start_date')
@@ -443,7 +446,9 @@ class AdminBrokerReportView(APIView):
         )
 
         entries = []
-        for e in qs.order_by('-created_at'):
+        for e in qs.select_related('product__unit').order_by('-created_at'):
+            weight_kg = e.product.unit.weight_kg if (e.product and e.product.unit and e.product.unit.weight_kg) else None
+            tonnes = round(float(e.quantity * weight_kg) / 1000, 4) if weight_kg else None
             entries.append({
                 'id': e.id,
                 'added_by': f"{e.user.first_name} {e.user.last_name}",
@@ -457,6 +462,7 @@ class AdminBrokerReportView(APIView):
                 'transporter': e.transporter.transporter_name if e.transporter else None,
                 'invoice_number': e.vendor_invoice.invoice_number if e.vendor_invoice else None,
                 'quantity': e.quantity,
+                'tonnes': tonnes,
                 'purchase_price': float(e.purchase_price),
                 'broker_commission_rate': float(e.broker_commission_rate or 0),
                 'broker_commission': float(e.broker_commission_amount or 0),

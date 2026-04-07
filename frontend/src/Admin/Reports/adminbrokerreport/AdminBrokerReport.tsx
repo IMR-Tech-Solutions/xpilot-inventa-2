@@ -19,7 +19,9 @@ interface BrokerEntry {
   transporter: string | null;
   invoice_number: string | null;
   quantity: number;
+  tonnes: number | null;
   purchase_price: number;
+  broker_commission_rate: number;
   broker_commission: number;
   cgst_percentage: number;
   cgst: number;
@@ -104,28 +106,39 @@ export default function AdminBrokerReport() {
     fetchReport();
   };
 
+  const totalBags = entries.reduce((sum, e) => sum + e.quantity, 0);
+  const totalTonnes = entries.reduce((sum, e) => sum + (e.tonnes ?? 0), 0);
+
   const columns: ColumnsType<BrokerEntry> = [
     {
-      title: "Product",
-      key: "product",
+      title: "Bill Date",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (val) => (
+        <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          {new Date(val).toLocaleDateString("en-IN")}
+        </span>
+      ),
+    },
+    {
+      title: "Party Name",
+      key: "party",
       render: (_, row) => (
         <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">{row.product_name}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">{row.product_sku}</div>
+          <div className="font-medium text-gray-900 dark:text-gray-100">{row.vendor}</div>
+          <div className="text-xs text-gray-400">{row.added_by}</div>
         </div>
       ),
     },
     {
-      title: "Added By",
-      dataIndex: "added_by",
-      key: "added_by",
-      render: (val) => <span className="text-sm text-gray-800 dark:text-gray-200">{val}</span>,
-    },
-    {
-      title: "Vendor",
-      dataIndex: "vendor",
-      key: "vendor",
-      render: (val) => <span className="text-sm text-gray-800 dark:text-gray-200">{val}</span>,
+      title: "Stock Item",
+      key: "product",
+      render: (_, row) => (
+        <div>
+          <div className="font-medium text-gray-900 dark:text-gray-100">{row.product_name}</div>
+          <div className="text-xs text-gray-400">{row.product_sku}</div>
+        </div>
+      ),
     },
     {
       title: "Broker",
@@ -140,47 +153,53 @@ export default function AdminBrokerReport() {
       ),
     },
     {
-      title: "Transporter",
-      dataIndex: "transporter",
-      key: "transporter",
-      render: (val) => val ? <Tag color="geekblue">{val}</Tag> : <span className="text-gray-400">—</span>,
-    },
-    {
-      title: "Qty",
+      title: "Bags",
       dataIndex: "quantity",
       key: "quantity",
       align: "right",
-      render: (val) => <span className="font-medium">{val}</span>,
+      render: (val) => <span className="font-semibold">{Number(val).toLocaleString("en-IN")}</span>,
     },
     {
-      title: "Purchase Price",
-      dataIndex: "purchase_price",
-      key: "purchase_price",
-      align: "right",
-      render: (val) => `₹${Number(val).toLocaleString("en-IN")}`,
-    },
-    {
-      title: "Commission",
-      dataIndex: "broker_commission",
-      key: "broker_commission",
+      title: "Quantity",
+      dataIndex: "tonnes",
+      key: "tonnes",
       align: "right",
       render: (val) => (
-        <span className="font-semibold text-orange-600 dark:text-orange-400">
-          ₹{Number(val).toLocaleString("en-IN")}
+        <span className="text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">
+          {val != null ? `${Number(val).toFixed(2)} ton` : "—"}
         </span>
       ),
     },
     {
-      title: "Invoice No.",
-      dataIndex: "invoice_number",
-      key: "invoice_number",
-      render: (val) => <span className="text-xs text-gray-500 dark:text-gray-400">{val || "—"}</span>,
+      title: "Sauda Rate",
+      dataIndex: "purchase_price",
+      key: "purchase_price",
+      align: "right",
+      render: (val) => (
+        <span className="whitespace-nowrap">₹{Number(val).toLocaleString("en-IN")}</span>
+      ),
     },
     {
-      title: "Date",
-      dataIndex: "created_at",
-      key: "created_at",
-      render: (val) => new Date(val).toLocaleDateString("en-IN"),
+      title: "Commission Rate",
+      dataIndex: "broker_commission_rate",
+      key: "broker_commission_rate",
+      align: "right",
+      render: (val) => (
+        <span className="whitespace-nowrap text-gray-700 dark:text-gray-300">
+          {val > 0 ? `₹${Number(val).toLocaleString("en-IN")}/bag` : "—"}
+        </span>
+      ),
+    },
+    {
+      title: "Commission Amount",
+      dataIndex: "broker_commission",
+      key: "broker_commission",
+      align: "right",
+      render: (val) => (
+        <span className="font-semibold text-orange-600 dark:text-orange-400 whitespace-nowrap">
+          ₹{Number(val).toLocaleString("en-IN")}
+        </span>
+      ),
     },
     {
       title: "",
@@ -221,18 +240,17 @@ export default function AdminBrokerReport() {
                 downloadCSV(
                   entries,
                   [
-                    { label: "Product", key: "product_name" },
-                    { label: "SKU", key: "product_sku" },
-                    { label: "Added By", key: "added_by" },
-                    { label: "Vendor", key: "vendor" },
+                    { label: "Bill Date", key: "created_at" },
+                    { label: "Party Name", key: "vendor" },
+                    { label: "Stock Item", key: "product_name" },
+                    { label: "Bags", key: "quantity" },
+                    { label: "Quantity (ton)", key: "tonnes" },
+                    { label: "Sauda Rate", key: "purchase_price" },
+                    { label: "Commission Rate", key: "broker_commission_rate" },
+                    { label: "Commission Amount", key: "broker_commission" },
                     { label: "Broker", key: "broker_name" },
-                    { label: "Broker Phone", key: "broker_phone" },
-                    { label: "Transporter", key: "transporter" },
-                    { label: "Qty", key: "quantity" },
-                    { label: "Purchase Price", key: "purchase_price" },
-                    { label: "Commission", key: "broker_commission" },
+                    { label: "Added By", key: "added_by" },
                     { label: "Invoice No.", key: "invoice_number" },
-                    { label: "Date", key: "created_at" },
                   ],
                   "admin-broker-report"
                 )
@@ -246,18 +264,17 @@ export default function AdminBrokerReport() {
                 downloadPDF(
                   entries,
                   [
-                    { label: "Product", key: "product_name" },
-                    { label: "SKU", key: "product_sku" },
-                    { label: "Added By", key: "added_by" },
-                    { label: "Vendor", key: "vendor" },
+                    { label: "Bill Date", key: "created_at" },
+                    { label: "Party Name", key: "vendor" },
+                    { label: "Stock Item", key: "product_name" },
+                    { label: "Bags", key: "quantity" },
+                    { label: "Quantity (ton)", key: "tonnes" },
+                    { label: "Sauda Rate", key: "purchase_price" },
+                    { label: "Commission Rate", key: "broker_commission_rate" },
+                    { label: "Commission Amount", key: "broker_commission" },
                     { label: "Broker", key: "broker_name" },
-                    { label: "Broker Phone", key: "broker_phone" },
-                    { label: "Transporter", key: "transporter" },
-                    { label: "Qty", key: "quantity" },
-                    { label: "Purchase Price", key: "purchase_price" },
-                    { label: "Commission", key: "broker_commission" },
+                    { label: "Added By", key: "added_by" },
                     { label: "Invoice No.", key: "invoice_number" },
-                    { label: "Date", key: "created_at" },
                   ],
                   "admin-broker-report"
                 )
@@ -343,9 +360,10 @@ export default function AdminBrokerReport() {
             </div>
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <Statistic
-                title={<span className="text-xs text-gray-500 dark:text-gray-400">Total Qty</span>}
-                value={summary.total_qty}
+                title={<span className="text-xs text-gray-500 dark:text-gray-400">Total Bags</span>}
+                value={totalBags}
                 valueStyle={{ color: "#2563eb" }}
+                suffix={totalTonnes > 0 ? <span className="text-xs text-gray-400 font-normal ml-1">({totalTonnes.toFixed(2)} ton)</span> : undefined}
               />
             </div>
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
@@ -377,6 +395,28 @@ export default function AdminBrokerReport() {
           pagination={{ pageSize: 20, showSizeChanger: true }}
           scroll={{ x: "max-content" }}
           locale={{ emptyText: "No broker entries found." }}
+          summary={() => (
+            <Table.Summary.Row className="font-semibold bg-gray-50 dark:bg-gray-800/50">
+              <Table.Summary.Cell index={0} colSpan={4}>
+                <span className="text-xs uppercase text-gray-500">Total</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right">
+                <span className="font-bold">{totalBags.toLocaleString("en-IN")}</span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right">
+                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  {totalTonnes > 0 ? `${totalTonnes.toFixed(2)} ton` : "—"}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={6} colSpan={2} />
+              <Table.Summary.Cell index={8} align="right">
+                <span className="font-bold text-orange-600 dark:text-orange-400">
+                  ₹{(summary?.total_commission ?? 0).toLocaleString("en-IN")}
+                </span>
+              </Table.Summary.Cell>
+              <Table.Summary.Cell index={9} />
+            </Table.Summary.Row>
+          )}
         />
       </div>
 
@@ -400,12 +440,17 @@ export default function AdminBrokerReport() {
                 <p className="font-medium text-gray-900 dark:text-gray-100">{drawerEntry.added_by}</p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Vendor</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Vendor (Party)</p>
                 <p className="text-gray-800 dark:text-gray-200">{drawerEntry.vendor}</p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Quantity</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{drawerEntry.quantity}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Bags</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">
+                  {drawerEntry.quantity.toLocaleString("en-IN")}
+                  {drawerEntry.tonnes != null && (
+                    <span className="ml-2 text-xs text-blue-500">= {drawerEntry.tonnes.toFixed(2)} ton</span>
+                  )}
+                </p>
               </div>
               <div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Broker</p>
@@ -419,13 +464,11 @@ export default function AdminBrokerReport() {
                 <p className="text-gray-800 dark:text-gray-200">{drawerEntry.transporter || "—"}</p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Manufacture Date</p>
-                <p className="text-gray-800 dark:text-gray-200">
-                  {new Date(drawerEntry.manufacture_date).toLocaleDateString("en-IN")}
-                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Invoice No.</p>
+                <p className="text-gray-800 dark:text-gray-200">{drawerEntry.invoice_number || "—"}</p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Added On</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">Bill Date</p>
                 <p className="text-gray-800 dark:text-gray-200">
                   {new Date(drawerEntry.created_at).toLocaleDateString("en-IN")}
                 </p>
@@ -436,7 +479,7 @@ export default function AdminBrokerReport() {
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2 text-sm">
               <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Cost Breakdown</p>
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Purchase Price</span>
+                <span className="text-gray-500 dark:text-gray-400">Sauda Rate (Purchase Price)</span>
                 <span>₹{drawerEntry.purchase_price.toLocaleString("en-IN")}</span>
               </div>
               <div className="flex justify-between">
@@ -455,8 +498,14 @@ export default function AdminBrokerReport() {
                 <span className="text-gray-500 dark:text-gray-400">Transport Cost</span>
                 <span>₹{drawerEntry.transporter_cost.toLocaleString("en-IN")}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Commission Rate
+                </span>
+                <span>₹{drawerEntry.broker_commission_rate.toLocaleString("en-IN")}/bag</span>
+              </div>
               <div className="flex justify-between border-t border-gray-100 dark:border-gray-700 pt-2 font-semibold text-orange-600 dark:text-orange-400">
-                <span>Broker Commission</span>
+                <span>Commission Amount ({drawerEntry.quantity} bags × ₹{drawerEntry.broker_commission_rate})</span>
                 <span>₹{drawerEntry.broker_commission.toLocaleString("en-IN")}</span>
               </div>
             </div>
