@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     AddPOSOrderView, AllPOSOrdersView, AllUserPOSOrdersView, UserPOSOrdersView,
-    UpdatePOSOrderView, POSOrderDetailView, CancelPOSOrderView,AddShopPOSOrderView
+    UpdatePOSOrderView, POSOrderDetailView, CancelPOSOrderView, AddShopPOSOrderView,
+    POSOrderStatementView,
 )
 from .invoice_views import (
     POSOrderInvoicePDFView, POSOrderInvoicePDFDownloadView,
@@ -26,4 +27,5 @@ urlpatterns = [
     path('pos-orders/<int:order_id>/invoice/pdf/', POSOrderInvoicePDFDownloadView.as_view(), name='pos-order-invoice-download'),
     path('pos-orders/<int:order_id>/receipt/<int:transaction_id>/view/', POSPaymentReceiptView.as_view(), name='pos-payment-receipt-view'),
     path('pos-orders/<int:order_id>/receipt/<int:transaction_id>/pdf/', POSPaymentReceiptDownloadView.as_view(), name='pos-payment-receipt-download'),
+    path('pos-orders/<int:order_id>/statement/', POSOrderStatementView.as_view(), name='pos-order-statement'),
 ]

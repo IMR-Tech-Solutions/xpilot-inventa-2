@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
-from .models import ManagerRequest, ShopOwnerProducts, ShopOwnerOrders, ShopPaymentTransaction
+from .models import ManagerRequest, ShopOwnerProducts, ShopOwnerOrders, ShopPaymentTransaction, ShopOrderItem
 from .serializers import ManagerRequestListSerializer, ManagerRequestSerializer
 from accounts.premissions import HasModuleAccess
 from products.models import Product
@@ -680,6 +680,71 @@ class UpdateShopOrderPaymentView(APIView):
             'online_amount': float(order.online_amount),
             'offline_amount': float(order.offline_amount),
             'transaction_id': transaction_id,
+        })
+
+
+class ShopOrderStatementView(APIView):
+    """Returns full order details + items + payment transaction history for one shop order."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-request"
+
+    def get(self, request, order_id):
+        order = ShopOwnerOrders.objects.filter(
+            id=order_id,
+            order_items__fulfilled_by_manager=request.user,
+        ).distinct().first()
+
+        if not order:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        items = []
+        for oi in order.order_items.filter(fulfilled_by_manager=request.user).select_related('product', 'product__unit').order_by('id'):
+            total_price = float(oi.actual_price or 0) * int(oi.fulfilled_quantity or 0)
+            items.append({
+                'id': oi.id,
+                'product_name': oi.product.product_name,
+                'sku': getattr(oi.product, 'sku_code', None) or 'N/A',
+                'unit': oi.product.unit.unitName if oi.product.unit else 'N/A',
+                'requested_quantity': oi.requested_quantity,
+                'fulfilled_quantity': oi.fulfilled_quantity,
+                'actual_price': float(oi.actual_price or 0),
+                'total_price': total_price,
+            })
+
+        transactions = []
+        for txn in order.payment_transactions.select_related('recorded_by').order_by('created_at'):
+            total_paid_after = float(txn.previous_paid) + float(txn.amount)
+            remaining_after = max(0, float(txn.total_order_amount) - total_paid_after)
+            transactions.append({
+                'id': txn.id,
+                'date': txn.created_at.isoformat(),
+                'amount': float(txn.amount),
+                'payment_method': txn.payment_method or 'N/A',
+                'online_amount': float(txn.online_amount),
+                'offline_amount': float(txn.offline_amount),
+                'previous_paid': float(txn.previous_paid),
+                'total_paid_after': total_paid_after,
+                'remaining_after': remaining_after,
+                'recorded_by': f"{txn.recorded_by.first_name} {txn.recorded_by.last_name}".strip() if txn.recorded_by else 'N/A',
+            })
+
+        return Response({
+            'order': {
+                'id': order.id,
+                'order_number': order.order_number,
+                'created_at': order.created_at.isoformat(),
+                'status': order.status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method or 'N/A',
+                'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
+                'shop_owner_phone': getattr(order.shop_owner, 'mobile_number', None) or 'N/A',
+                'total_amount': float(order.total_amount or 0),
+                'amount_paid': float(order.amount_paid or 0),
+                'remaining_amount': float(order.remaining_amount or 0),
+                'notes': order.notes or '',
+            },
+            'items': items,
+            'transactions': transactions,
         })
 
 

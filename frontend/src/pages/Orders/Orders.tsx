@@ -8,7 +8,8 @@ import {
   viewPOSorderService,
   downloadPOSorderService,
 } from "../../services/posorderservices";
-import { EyeOutlined, DownloadOutlined, EditOutlined } from "@ant-design/icons";
+import { EyeOutlined, DownloadOutlined, EditOutlined, BarChartOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { OrderItem } from "../../types/types";
 import { handleError } from "../../utils/handleError";
@@ -23,6 +24,7 @@ const Orders = () => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const navigate = useNavigate();
   const [updatePosOrder, setUpdatePosOrder] = useState<OrderItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -251,6 +253,13 @@ const Orders = () => {
             size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
+          />
+          <Button
+            id="table-statement-btn"
+            size="small"
+            icon={<BarChartOutlined />}
+            onClick={() => navigate(`/orders/${record.id}/statement`)}
+            title="View Statement"
           />
         </Space>
       ),

@@ -7,8 +7,10 @@ from .views import (
     
     # Manager Views  
     ManagerPendingRequestsView, ManagerRequestDetailView,
-    ManagerAcceptRequestView, ManagerRejectRequestView, 
-    ManagerRequestHistoryView,UpdateShopOwnerProductPriceView,ManagerFulfilledOrdersListView,ManagerOrderDetailView,ManagerUpdateOrderStatusView,UpdateShopOrderPaymentView
+    ManagerAcceptRequestView, ManagerRejectRequestView,
+    ManagerRequestHistoryView, UpdateShopOwnerProductPriceView, ManagerFulfilledOrdersListView,
+    ManagerOrderDetailView, ManagerUpdateOrderStatusView, UpdateShopOrderPaymentView,
+    ShopOrderStatementView,
 )
 from .invoice_views import (
     ManagerOrderInvoicePDFView, ManagerOrderInvoicePDFDownloadView,
@@ -48,4 +50,5 @@ urlpatterns = [
     path('manager/orders/<int:order_id>/update-payment/', UpdateShopOrderPaymentView.as_view(), name='manager-update-order-payment'),
     path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/view/', ShopPaymentReceiptView.as_view(), name='shop-payment-receipt-view'),
     path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/pdf/', ShopPaymentReceiptDownloadView.as_view(), name='shop-payment-receipt-download'),
+    path('manager/orders/<int:order_id>/statement/', ShopOrderStatementView.as_view(), name='shop-order-statement'),
 ]

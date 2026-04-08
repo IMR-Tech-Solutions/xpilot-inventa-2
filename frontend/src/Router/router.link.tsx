@@ -75,6 +75,8 @@ const FormElements = lazy(() => import("../pages/Forms/FormElements"));
 const Blank = lazy(() => import("../pages/Blank"));
 const Orders = lazy(() => import("../pages/Orders/Orders"));
 const Createorders = lazy(() => import("../pages/Orders/Createorder"));
+const POSOrderStatement = lazy(() => import("../pages/Orders/POSOrderStatement"));
+const ShopOrderStatement = lazy(() => import("../Shop/ShopOrderRequest/ShopOrderStatement"));
 const Products = lazy(() => import("../pages/Product/Products"));
 const Addproducts = lazy(() => import("../pages/Product/Addproducts"));
 const Categories = lazy(() => import("../pages/Category/Categories"));
@@ -395,6 +397,20 @@ export const websiteRoutes = [
     link: all_routes.shoporders,
     module: all_modules.shoprequests,
     element: <AllShopOrders />,
+  },
+  {
+    id: "44a",
+    name: "POS Order Statement",
+    link: all_routes.posorderstatement,
+    module: all_modules.orders,
+    element: <POSOrderStatement />,
+  },
+  {
+    id: "44b",
+    name: "Shop Order Statement",
+    link: all_routes.shoporderstatement,
+    module: all_modules.shoprequests,
+    element: <ShopOrderStatement />,
   },
   {
     id: "46",

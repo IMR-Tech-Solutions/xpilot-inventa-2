@@ -191,3 +191,73 @@ class AddShopPOSOrderView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class POSOrderStatementView(APIView):
+    """Returns full order details + items + payment transaction history for one POS order."""
+    permission_classes = [IsAuthenticated, HasModuleAccess, IsOwnerOrAdmin]
+    required_permission = "view-posorder-invoices"
+
+    def get(self, request, order_id):
+        order = get_object_or_404(POSOrder, pk=order_id)
+        self.check_object_permissions(request, order)
+
+        items = []
+        for oi in order.order_items.select_related('product', 'product__unit').order_by('id'):
+            items.append({
+                'id': oi.id,
+                'product_name': oi.product.product_name,
+                'sku': getattr(oi.product, 'sku_code', None) or 'N/A',
+                'unit': oi.product.unit.unitName if oi.product.unit else 'N/A',
+                'quantity': oi.quantity,
+                'unit_price': float(oi.unit_price or 0),
+                'total_price': float(oi.total_price or 0),
+            })
+
+        transactions = []
+        for txn in order.payment_transactions.select_related('recorded_by').order_by('created_at'):
+            total_paid_after = float(txn.previous_paid) + float(txn.amount)
+            remaining_after = max(0, float(txn.total_order_amount) - total_paid_after)
+            transactions.append({
+                'id': txn.id,
+                'date': txn.created_at.isoformat(),
+                'amount': float(txn.amount),
+                'payment_method': txn.payment_method or 'N/A',
+                'online_amount': float(txn.online_amount),
+                'offline_amount': float(txn.offline_amount),
+                'previous_paid': float(txn.previous_paid),
+                'total_paid_after': total_paid_after,
+                'remaining_after': remaining_after,
+                'recorded_by': f"{txn.recorded_by.first_name} {txn.recorded_by.last_name}".strip() if txn.recorded_by else 'N/A',
+            })
+
+        return Response({
+            'order': {
+                'id': order.id,
+                'order_number': order.order_number,
+                'created_at': order.created_at.isoformat(),
+                'order_status': order.order_status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method or 'N/A',
+                'customer_name': f"{order.customer.first_name} {order.customer.last_name}".strip() if order.customer else 'N/A',
+                'customer_phone': getattr(order.customer, 'phone', None) or 'N/A',
+                'customer_email': getattr(order.customer, 'email', None) or 'N/A',
+                'address': order.address or '',
+                'city': order.city or '',
+                'zipcode': order.zipcode or '',
+                'subtotal': float(order.subtotal or 0),
+                'cgst_percentage': float(order.cgst_percentage or 0),
+                'cgst_amount': float(order.cgst_amount or 0),
+                'sgst_percentage': float(order.sgst_percentage or 0),
+                'sgst_amount': float(order.sgst_amount or 0),
+                'discount_amount': float(order.discount_amount or 0),
+                'labour_charges': float(order.labour_charges or 0),
+                'transport_charges': float(order.transport_charges or 0),
+                'total_amount': float(order.total_amount or 0),
+                'amount_paid': float(order.amount_paid or 0),
+                'remaining_amount': float(order.remaining_amount or 0),
+            },
+            'items': items,
+            'transactions': transactions,
+        })
+

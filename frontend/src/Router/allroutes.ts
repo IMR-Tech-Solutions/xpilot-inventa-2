@@ -11,6 +11,8 @@ export const all_routes = {
   // ── Orders ────────────────────────────────────────────────────────────────
   orders: "/orders",
   createorders: "/new-order",
+  posorderstatement: "/orders/:orderID/statement",
+  shoporderstatement: "/shop-orders/:orderID/statement",
 
   // ── Products & Categories ─────────────────────────────────────────────────
   products: "/products",

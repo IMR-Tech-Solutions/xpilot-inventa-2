@@ -31,7 +31,9 @@ import {
   DollarOutlined,
   PlusOutlined,
   FileTextOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
+import { useNavigate } from "react-router";
 import {
   viewShopPaymentReceiptService,
   downloadShopPaymentReceiptService,
@@ -83,6 +85,7 @@ const PAYMENT_STATUS_COLOR: Record<string, string> = {
 };
 
 const AllShopOrders = () => {
+  const navigate = useNavigate();
   const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -492,6 +495,12 @@ const AllShopOrders = () => {
               Payment
             </Button>
           )}
+          <Button
+            size="small"
+            icon={<BarChartOutlined />}
+            onClick={() => navigate(`/shop-orders/${record.id}/statement`)}
+            title="View Statement"
+          />
         </Space>
       ),
     },
