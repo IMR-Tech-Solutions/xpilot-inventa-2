@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
-from .models import POSOrder, POSOrderItem
+from .models import POSOrder, POSOrderItem, POSPaymentTransaction
 from .serializers import (
     POSOrderSerializer, POSOrderListSerializer,
     POSOrderStatusUpdateSerializer, POSShopOrderSerializer
@@ -87,9 +87,34 @@ class UpdatePOSOrderView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        previous_paid = pos_order.amount_paid
+        previous_online = pos_order.online_amount
+        previous_offline = pos_order.offline_amount
+
         serializer = POSOrderStatusUpdateSerializer(pos_order, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            # Create a payment transaction record if a new payment was made
+            new_paid = pos_order.amount_paid
+            if new_paid > previous_paid:
+                delta = new_paid - previous_paid
+                delta_online = max(pos_order.online_amount - previous_online, 0)
+                delta_offline = max(pos_order.offline_amount - previous_offline, 0)
+                transaction_obj = POSPaymentTransaction.objects.create(
+                    order=pos_order,
+                    amount=delta,
+                    payment_method=pos_order.payment_method,
+                    online_amount=delta_online,
+                    offline_amount=delta_offline,
+                    previous_paid=previous_paid,
+                    total_order_amount=pos_order.total_amount,
+                    recorded_by=request.user,
+                )
+                data = serializer.data
+                data['transaction_id'] = transaction_obj.id
+                return Response(data)
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

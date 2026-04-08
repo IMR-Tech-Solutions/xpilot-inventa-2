@@ -6,8 +6,13 @@ import {
   updateposorderservice,
   cancelposorderservice,
 } from "../../services/posorderservices";
+import {
+  viewPOSPaymentReceiptService,
+  downloadPOSPaymentReceiptService,
+} from "../../services/paymentreceiptservices";
 import { OrderItem } from "../../types/types";
 import { Button } from "antd";
+import { FileTextOutlined, DownloadOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -48,6 +53,8 @@ const EditOrders = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [transactionId, setTransactionId] = useState<number | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const totalAmount = parseFloat(selectedOrder.total_amount || "0");
 
@@ -61,6 +68,7 @@ const EditOrders = ({
         online_amount: 0,
         offline_amount: 0,
       });
+      setTransactionId(null);
     }
   }, [selectedOrder, visible, form]);
 
@@ -97,10 +105,14 @@ const EditOrders = ({
         payload.offline_amount = (values.offline_amount || 0).toFixed(2);
       }
 
-      await updateposorderservice(selectedOrder.id!, payload as any);
+      const result = await updateposorderservice(selectedOrder.id!, payload as any);
       toast.success("Order updated successfully");
       fetchOrders();
-      onCancel();
+      if (result?.transaction_id) {
+        setTransactionId(result.transaction_id);
+      } else {
+        onCancel();
+      }
     } catch (err) {
       handleError(err);
     } finally {
@@ -122,19 +134,71 @@ const EditOrders = ({
     }
   };
 
+  const handleViewReceipt = async () => {
+    if (!transactionId || !selectedOrder.id) return;
+    setReceiptLoading(true);
+    try {
+      await viewPOSPaymentReceiptService(selectedOrder.id, transactionId);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async () => {
+    if (!transactionId || !selectedOrder.id) return;
+    setReceiptLoading(true);
+    try {
+      await downloadPOSPaymentReceiptService(selectedOrder.id, transactionId);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
   return (
     <Modal
       title={`Edit Order — ${selectedOrder?.order_number || ""}`}
       open={visible}
-      onCancel={onCancel}
-      footer={[
-        <Button key="cancelOrder" danger onClick={handleCancelOrder} loading={loading}>
-          Cancel Order
-        </Button>,
-        <Button key="back" onClick={onCancel}>Close</Button>,
-        <Button key="submit" type="primary" loading={loading} onClick={handleOk}>Save</Button>,
-      ]}
+      onCancel={() => { setTransactionId(null); onCancel(); }}
+      footer={
+        transactionId ? [
+          <Button key="back" onClick={() => { setTransactionId(null); onCancel(); }}>Close</Button>,
+          <Button
+            key="viewReceipt"
+            icon={<FileTextOutlined />}
+            loading={receiptLoading}
+            onClick={handleViewReceipt}
+          >
+            View Receipt
+          </Button>,
+          <Button
+            key="downloadReceipt"
+            type="primary"
+            icon={<DownloadOutlined />}
+            loading={receiptLoading}
+            onClick={handleDownloadReceipt}
+          >
+            Download Receipt
+          </Button>,
+        ] : [
+          <Button key="cancelOrder" danger onClick={handleCancelOrder} loading={loading}>
+            Cancel Order
+          </Button>,
+          <Button key="back" onClick={onCancel}>Close</Button>,
+          <Button key="submit" type="primary" loading={loading} onClick={handleOk}>Save</Button>,
+        ]
+      }
     >
+      {/* Receipt ready banner */}
+      {transactionId && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-700">
+          <strong>Payment saved!</strong> A receipt has been generated for this payment. Use the buttons below to view or download it.
+        </div>
+      )}
+
       {/* Order summary */}
       <div className="mb-4 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-sm space-y-1">
         <div className="flex justify-between">

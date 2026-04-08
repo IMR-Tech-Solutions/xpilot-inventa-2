@@ -30,7 +30,12 @@ import {
   TruckOutlined,
   DollarOutlined,
   PlusOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
+import {
+  viewShopPaymentReceiptService,
+  downloadShopPaymentReceiptService,
+} from "../../services/paymentreceiptservices";
 import { toast } from "react-toastify";
 import { handleError } from "../../utils/handleError";
 import dayjs from "dayjs";
@@ -110,6 +115,12 @@ const AllShopOrders = () => {
   const [form] = Form.useForm();
   const watchedMethod = Form.useWatch("payment_method", form);
   const watchedAmountPaid = Form.useWatch("amount_paid", form);
+
+  // ── Receipt modal state ────────────────────────────────────────────────────
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptOrderId, setReceiptOrderId] = useState<number | null>(null);
+  const [receiptTransactionId, setReceiptTransactionId] = useState<number | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
 
   const fetchShopOrders = async () => {
     setLoading(true);
@@ -250,6 +261,11 @@ const AllShopOrders = () => {
 
       toast.success("Payment recorded successfully.");
       setPaymentModalOpen(false);
+      if (result?.transaction_id) {
+        setReceiptOrderId(paymentOrder.id);
+        setReceiptTransactionId(result.transaction_id);
+        setReceiptModalOpen(true);
+      }
     } catch (err) {
       handleError(err);
     } finally {
@@ -297,6 +313,31 @@ const AllShopOrders = () => {
       toast.update(toastId, { render: "Failed", type: "error", isLoading: false, autoClose: 2000 });
     } finally {
       setLoadingButtons((prev) => ({ ...prev, [orderID]: { ...prev[orderID], chalan: false } }));
+    }
+  };
+
+  // ── Receipt handlers ──────────────────────────────────────────────────────
+  const handleViewReceipt = async () => {
+    if (!receiptOrderId || !receiptTransactionId) return;
+    setReceiptLoading(true);
+    try {
+      await viewShopPaymentReceiptService(receiptOrderId, receiptTransactionId);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
+  const handleDownloadReceipt = async () => {
+    if (!receiptOrderId || !receiptTransactionId) return;
+    setReceiptLoading(true);
+    try {
+      await downloadShopPaymentReceiptService(receiptOrderId, receiptTransactionId);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setReceiptLoading(false);
     }
   };
 
@@ -590,6 +631,43 @@ const AllShopOrders = () => {
             />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* ── Receipt Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        title="Payment Receipt Ready"
+        open={receiptModalOpen}
+        onCancel={() => setReceiptModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setReceiptModalOpen(false)}>
+            Close
+          </Button>,
+          <Button
+            key="view"
+            icon={<FileTextOutlined />}
+            loading={receiptLoading}
+            onClick={handleViewReceipt}
+          >
+            View Receipt
+          </Button>,
+          <Button
+            key="download"
+            type="primary"
+            icon={<DownloadOutlined />}
+            loading={receiptLoading}
+            onClick={handleDownloadReceipt}
+          >
+            Download Receipt
+          </Button>,
+        ]}
+        width={420}
+      >
+        <div className="py-4 text-center space-y-2">
+          <div className="text-green-600 text-lg font-semibold">Payment recorded successfully!</div>
+          <p className="text-sm text-gray-500">
+            A receipt has been generated for this payment. You can view or download it now.
+          </p>
+        </div>
       </Modal>
 
       {/* ── Payment Modal ─────────────────────────────────────────────────── */}

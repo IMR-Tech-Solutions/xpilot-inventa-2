@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Payment Receipt - {{ receipt_number }}</title>
+    <style>
+      @page { size: A5; margin: 0.8cm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Arial", sans-serif; font-size: 11px; color: #000; padding: 14px; }
+      .container { max-width: 148mm; margin: 0 auto; }
+
+      /* Header */
+      .header { border: 1px solid #000; padding: 12px; margin-bottom: 10px; }
+      .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+      .company-logo { width: 90px; height: 55px; object-fit: contain; margin-bottom: 4px; }
+      .receipt-title { font-size: 18px; font-weight: bold; color: #000; text-align: right; }
+      .receipt-subtitle { font-size: 10px; color: #555; text-align: right; margin-top: 2px; }
+      .header-details { border-top: 1px solid #000; padding-top: 7px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+      .header-details div { font-size: 10px; }
+      .header-details strong { display: inline-block; min-width: 80px; }
+
+      /* Info section */
+      .info-section { border: 1px solid #000; padding: 9px; margin-bottom: 10px; }
+      .info-section h3 { font-size: 11px; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+      .info-section p { margin: 2px 0; font-size: 10px; line-height: 1.4; }
+
+      /* Payment summary table */
+      .payment-summary { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+      .payment-summary td { padding: 7px 10px; font-size: 11px; border: 1px solid #ddd; }
+      .payment-summary .label { color: #333; }
+      .payment-summary .value { text-align: right; font-weight: bold; }
+      .payment-summary tr.section-header td { background: #f0f0f0; font-weight: bold; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-color: #000; }
+      .payment-summary tr.this-payment td { background: #e8f5e9; }
+      .payment-summary tr.this-payment .value { color: #1a7a1a; font-size: 13px; }
+      .payment-summary tr.remaining td.value { color: #c0392b; font-weight: bold; }
+      .payment-summary tr.fully-paid td.value { color: #1a7a1a; font-weight: bold; }
+      .payment-summary tr.total-line td { border-top: 2px solid #000; font-weight: bold; }
+
+      /* Mix breakdown */
+      .mix-box { border: 1px solid #ccc; padding: 7px 10px; margin-bottom: 12px; font-size: 10px; background: #fafafa; }
+      .mix-box h3 { font-size: 10px; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+      .mix-row { display: flex; justify-content: space-between; padding: 2px 0; }
+
+      /* Paid stamp */
+      .paid-stamp { text-align: center; margin: 10px 0; }
+      .paid-stamp span {
+        display: inline-block; border: 3px solid #1a7a1a; color: #1a7a1a;
+        font-size: 20px; font-weight: bold; padding: 4px 20px;
+        letter-spacing: 3px; transform: rotate(-5deg); opacity: 0.85;
+      }
+
+      /* Signature */
+      .signature { text-align: right; margin-top: 20px; padding-top: 8px; border-top: 1px solid #000; }
+      .signature p { font-size: 10px; font-weight: bold; }
+
+      /* Footer */
+      .footer { margin-top: 14px; text-align: center; font-size: 9px; color: #666; border-top: 1px solid #000; padding-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <div>
+            <img src="../../media/default/default.png" alt="Logo" class="company-logo" />
+            <p style="font-weight:bold; font-size:12px;">INVENTA</p>
+          </div>
+          <div>
+            <div class="receipt-title">PAYMENT RECEIPT</div>
+            <div class="receipt-subtitle">Payment Acknowledgement</div>
+          </div>
+        </div>
+        <div class="header-details">
+          <div><strong>Receipt #:</strong> {{ receipt_number }}</div>
+          <div><strong>Date:</strong> {{ date }}</div>
+          <div><strong>Order #:</strong> {{ order_number }}</div>
+          <div><strong>Method:</strong> {{ payment_method|upper }}</div>
+        </div>
+      </div>
+
+      <!-- Customer Info -->
+      <div class="info-section">
+        <h3>Customer / Party</h3>
+        <p><strong>Name:</strong> {{ customer_name }}</p>
+        <p><strong>Phone:</strong> {{ customer_phone }}</p>
+      </div>
+
+      <!-- Payment Summary -->
+      <table class="payment-summary">
+        <tr class="section-header">
+          <td colspan="2">Payment Summary</td>
+        </tr>
+        <tr>
+          <td class="label">Order Total</td>
+          <td class="value">&#8377;{{ total_order_amount|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <td class="label">Previously Paid</td>
+          <td class="value">&#8377;{{ previous_paid|floatformat:2 }}</td>
+        </tr>
+        <tr class="this-payment">
+          <td class="label"><strong>This Payment</strong></td>
+          <td class="value">&#8377;{{ this_payment|floatformat:2 }}</td>
+        </tr>
+        <tr class="total-line">
+          <td class="label">Total Paid Now</td>
+          <td class="value">&#8377;{{ total_paid_now|floatformat:2 }}</td>
+        </tr>
+        {% if is_fully_paid %}
+        <tr class="fully-paid">
+          <td class="label">Balance Remaining</td>
+          <td class="value">FULLY PAID</td>
+        </tr>
+        {% else %}
+        <tr class="remaining">
+          <td class="label">Balance Remaining</td>
+          <td class="value">&#8377;{{ remaining_after|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+      </table>
+
+      <!-- Mix payment breakdown -->
+      {% if payment_method == 'mix' and online_amount > 0 %}
+      <div class="mix-box">
+        <h3>Payment Breakdown (Mix)</h3>
+        <div class="mix-row"><span>Online:</span><span>&#8377;{{ online_amount|floatformat:2 }}</span></div>
+        <div class="mix-row"><span>Offline / Cash:</span><span>&#8377;{{ offline_amount|floatformat:2 }}</span></div>
+      </div>
+      {% endif %}
+
+      <!-- Paid stamp if fully settled -->
+      {% if is_fully_paid %}
+      <div class="paid-stamp"><span>PAID IN FULL</span></div>
+      {% endif %}
+
+      <!-- Recorded by -->
+      <p style="font-size:10px; color:#555; margin-bottom:10px;">Recorded by: <strong>{{ recorded_by }}</strong></p>
+
+      <!-- Signature -->
+      <div class="signature">
+        <p>inventa by</p>
+        <p>IMR Tech Solutions</p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        &copy; {{ year }} <strong>inventa | IMRTS</strong> &nbsp;|&nbsp; All rights reserved. &nbsp;|&nbsp;
+        <strong>inventa</strong> by <strong>IMR Tech Solutions</strong>
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
-from .models import ManagerRequest, ShopOwnerProducts
+from .models import ManagerRequest, ShopOwnerProducts, ShopOwnerOrders, ShopPaymentTransaction
 from .serializers import ManagerRequestListSerializer, ManagerRequestSerializer
 from accounts.premissions import HasModuleAccess
 from products.models import Product
@@ -639,6 +639,10 @@ class UpdateShopOrderPaymentView(APIView):
         else:
             payment_status = 'pending'
 
+        previous_paid = order.amount_paid
+        previous_online = order.online_amount
+        previous_offline = order.offline_amount
+
         order.amount_paid = amount_paid
         order.remaining_amount = remaining
         order.payment_status = payment_status
@@ -646,6 +650,23 @@ class UpdateShopOrderPaymentView(APIView):
         order.online_amount = online_amount
         order.offline_amount = offline_amount
         order.save()
+
+        transaction_id = None
+        if amount_paid > previous_paid:
+            delta = amount_paid - previous_paid
+            delta_online = max(online_amount - previous_online, Decimal('0'))
+            delta_offline = max(offline_amount - previous_offline, Decimal('0'))
+            txn = ShopPaymentTransaction.objects.create(
+                order=order,
+                amount=delta,
+                payment_method=payment_method,
+                online_amount=delta_online,
+                offline_amount=delta_offline,
+                previous_paid=previous_paid,
+                total_order_amount=order.total_amount,
+                recorded_by=request.user,
+            )
+            transaction_id = txn.id
 
         return Response({
             'message': 'Payment updated successfully.',
@@ -658,6 +679,7 @@ class UpdateShopOrderPaymentView(APIView):
             'payment_method': order.payment_method,
             'online_amount': float(order.online_amount),
             'offline_amount': float(order.offline_amount),
+            'transaction_id': transaction_id,
         })
 
 

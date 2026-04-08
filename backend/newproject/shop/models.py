@@ -95,6 +95,30 @@ class ShopOwnerOrders(models.Model):
         return f"Order {self.order_number} by {self.shop_owner.first_name}"
 
 
+class ShopPaymentTransaction(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('online', 'Online'),
+        ('mix', 'Mix'),
+    ]
+    order = models.ForeignKey(ShopOwnerOrders, on_delete=models.CASCADE, related_name='payment_transactions')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True)
+    online_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    offline_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    previous_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    recorded_by = models.ForeignKey(UserMaster, on_delete=models.SET_NULL, null=True, blank=True, related_name='shop_payment_transactions')
+    notes = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Receipt #{self.id} - {self.order.order_number} - ₹{self.amount}"
+
+
 class ShopOrderItem(models.Model):
     order = models.ForeignKey(ShopOwnerOrders, on_delete=models.CASCADE, related_name='order_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from accounts.premissions import HasModuleAccess, IsOwnerOrAdmin
-from .models import ShopOwnerOrders, ShopOrderItem
+from .models import ShopOwnerOrders, ShopOrderItem, ShopPaymentTransaction
 from django.utils.dateparse import parse_date
 from accounts.models import UserMaster
 from django.http import Http404
@@ -265,5 +265,62 @@ class ShopOwnerOrderItemInvoicePDFDownloadView(ShopOwnerOrderItemInvoicePDFBaseV
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename=purchase_invoice_{filename}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+class ShopPaymentReceiptBaseView(APIView):
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-request"
+
+    def generate_pdf(self, request, order_id, transaction_id):
+        order = get_object_or_404(ShopOwnerOrders, pk=order_id)
+        txn = get_object_or_404(ShopPaymentTransaction, pk=transaction_id, order=order)
+
+        from decimal import Decimal
+        total_paid_now = txn.previous_paid + txn.amount
+        remaining_after = max(Decimal('0'), txn.total_order_amount - total_paid_now)
+
+        context = {
+            "receipt_number": f"RCP-{txn.id:04d}",
+            "order_number": order.order_number,
+            "date": format_date(txn.created_at),
+            "year": txn.created_at.year if txn.created_at else '',
+            "customer_name": f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
+            "customer_phone": order.shop_owner.mobile_number or 'N/A',
+            "payment_method": txn.payment_method or 'N/A',
+            "this_payment": float(txn.amount),
+            "previous_paid": float(txn.previous_paid),
+            "total_paid_now": float(total_paid_now),
+            "total_order_amount": float(txn.total_order_amount),
+            "remaining_after": float(remaining_after),
+            "online_amount": float(txn.online_amount),
+            "offline_amount": float(txn.offline_amount),
+            "recorded_by": f"{txn.recorded_by.first_name} {txn.recorded_by.last_name}".strip() if txn.recorded_by else "N/A",
+            "is_fully_paid": remaining_after == 0,
+        }
+
+        html_string = render_to_string("payment_receipt.html", context)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+        pdf_result = html.write_pdf()
+        return pdf_result, f"{order.order_number}-RCP{txn.id:04d}"
+
+
+class ShopPaymentReceiptView(ShopPaymentReceiptBaseView):
+    """View shop payment receipt PDF inline"""
+    def get(self, request, order_id, transaction_id):
+        pdf_result, name = self.generate_pdf(request, order_id, transaction_id)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename=receipt_{name}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+class ShopPaymentReceiptDownloadView(ShopPaymentReceiptBaseView):
+    """Download shop payment receipt PDF"""
+    def get(self, request, order_id, transaction_id):
+        pdf_result, name = self.generate_pdf(request, order_id, transaction_id)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=receipt_{name}.pdf'
         response.write(pdf_result)
         return response

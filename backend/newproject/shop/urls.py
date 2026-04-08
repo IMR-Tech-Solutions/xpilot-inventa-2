@@ -10,7 +10,12 @@ from .views import (
     ManagerAcceptRequestView, ManagerRejectRequestView, 
     ManagerRequestHistoryView,UpdateShopOwnerProductPriceView,ManagerFulfilledOrdersListView,ManagerOrderDetailView,ManagerUpdateOrderStatusView,UpdateShopOrderPaymentView
 )
-from .invoice_views import (ManagerOrderInvoicePDFView,ManagerOrderInvoicePDFDownloadView,ShopOwnerOrderItemInvoicePDFDownloadView,ShopOwnerOrderItemInvoicePDFView,ManagerOrderDeliveryChallanPDFDownloadView)
+from .invoice_views import (
+    ManagerOrderInvoicePDFView, ManagerOrderInvoicePDFDownloadView,
+    ShopOwnerOrderItemInvoicePDFDownloadView, ShopOwnerOrderItemInvoicePDFView,
+    ManagerOrderDeliveryChallanPDFDownloadView,
+    ShopPaymentReceiptView, ShopPaymentReceiptDownloadView,
+)
 
 urlpatterns = [
     # Inventory Management
@@ -41,4 +46,6 @@ urlpatterns = [
     path('manager/orders/<int:order_id>/delivery-challan/pdf/', ManagerOrderDeliveryChallanPDFDownloadView.as_view(), name='manager-delivery-challan-download'),
     path('manager/orders/<int:order_id>/update-status/', ManagerUpdateOrderStatusView.as_view(), name='manager-update-order-status'),
     path('manager/orders/<int:order_id>/update-payment/', UpdateShopOrderPaymentView.as_view(), name='manager-update-order-payment'),
+    path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/view/', ShopPaymentReceiptView.as_view(), name='shop-payment-receipt-view'),
+    path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/pdf/', ShopPaymentReceiptDownloadView.as_view(), name='shop-payment-receipt-download'),
 ]
