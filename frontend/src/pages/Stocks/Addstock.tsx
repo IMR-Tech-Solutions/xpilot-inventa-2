@@ -29,6 +29,8 @@ interface ItemForm {
   cgst_percentage: string;
   sgst_percentage: string;
   manufacture_date: string;
+  broker: number | null;
+  broker_commission_rate: string;
 }
 
 interface SharedForm {
@@ -37,8 +39,6 @@ interface SharedForm {
   transporter_cost: string;
   varne_cost: string;
   labour_cost: string;
-  broker: number | null;
-  broker_commission_rate: string;
 }
 
 const emptyItem: ItemForm = {
@@ -48,6 +48,8 @@ const emptyItem: ItemForm = {
   cgst_percentage: "",
   sgst_percentage: "",
   manufacture_date: dayjs().format("YYYY-MM-DD"),
+  broker: null,
+  broker_commission_rate: "",
 };
 
 const emptyShared: SharedForm = {
@@ -56,8 +58,6 @@ const emptyShared: SharedForm = {
   transporter_cost: "",
   varne_cost: "",
   labour_cost: "",
-  broker: null,
-  broker_commission_rate: "",
 };
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -163,14 +163,7 @@ const Addstock = () => {
   };
   const selectedVendor = vendors.find((v) => v.id === shared.vendor);
   const selectedTransporter = transporters.find((t) => t.id === shared.transporter);
-  const selectedBroker = brokers.find((b) => b.id === shared.broker);
-
-  // ── Commission totals ────────────────────────────────────────────────────
-  const totalBags = items.reduce((sum, it) => sum + (parseInt(it.quantity) || 0), 0);
-  const commissionTotal =
-    shared.broker && shared.broker_commission_rate && parseFloat(shared.broker_commission_rate) > 0 && totalBags > 0
-      ? parseFloat(shared.broker_commission_rate) * totalBags
-      : null;
+  const getBrokerName = (id: number | null) => brokers.find((b) => b.id === id)?.broker_name ?? null;
 
   // ── Validation ───────────────────────────────────────────────────────────
   const validateStep1 = () => {
@@ -230,10 +223,6 @@ const Addstock = () => {
   const handleSubmit = async () => {
     if (!shared.vendor || items.length === 0) return;
 
-    if (shared.broker && (!shared.broker_commission_rate || parseFloat(shared.broker_commission_rate) < 0)) {
-      toast.error("Please enter a valid broker commission rate."); return;
-    }
-
     const payload: Record<string, any> = {
       vendor: shared.vendor,
       items: items.map((it) => ({
@@ -243,6 +232,7 @@ const Addstock = () => {
         ...(it.cgst_percentage ? { cgst_percentage: it.cgst_percentage } : {}),
         ...(it.sgst_percentage ? { sgst_percentage: it.sgst_percentage } : {}),
         manufacture_date: it.manufacture_date,
+        ...(it.broker ? { broker: it.broker, broker_commission_rate: it.broker_commission_rate || "0" } : {}),
       })),
     };
 
@@ -252,10 +242,6 @@ const Addstock = () => {
     }
     if (shared.varne_cost) payload.varne_cost = shared.varne_cost;
     if (shared.labour_cost) payload.labour_cost = shared.labour_cost;
-    if (shared.broker) {
-      payload.broker = shared.broker;
-      payload.broker_commission_rate = shared.broker_commission_rate || "0";
-    }
 
     try {
       setIsLoading(true);
@@ -359,44 +345,6 @@ const Addstock = () => {
               </div>
             </div>
 
-            {/* Broker */}
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold theme-text uppercase tracking-wider mb-3">Broker (Optional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <Label>Broker</Label>
-                  <select
-                    value={shared.broker ?? ""}
-                    onChange={(e) => {
-                      const val = Number(e.target.value) || null;
-                      const broker = brokers.find((b) => b.id === val);
-                      setShared((prev) => ({
-                        ...prev,
-                        broker: val,
-                        broker_commission_rate: broker?.default_commission_amount
-                          ? String(broker.default_commission_amount) : "",
-                      }));
-                    }}
-                    className="input-field"
-                  >
-                    <option value="">No Broker</option>
-                    {brokers.map((b) => (
-                      <option key={b.id} value={b.id} className="text-black">{b.broker_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>Commission Rate (₹/bag){shared.broker && <span className="text-red-500"> *</span>}</Label>
-                  <input type="number" step="0.01" min="0" value={shared.broker_commission_rate}
-                    onChange={(e) => setS("broker_commission_rate", e.target.value)}
-                    className="input-field" placeholder="e.g. 5" disabled={!shared.broker} />
-                  {shared.broker && shared.broker_commission_rate && parseFloat(shared.broker_commission_rate) > 0 && (
-                    <p className="text-xs text-gray-400 mt-1">₹{shared.broker_commission_rate}/bag × bags added = total commission</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
             <div className="flex justify-end mt-6">
               <button type="button" onClick={handleNext}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
@@ -478,6 +426,39 @@ const Addstock = () => {
                     <input type="number" step="0.01" min="0" max="100" value={currentItem.sgst_percentage}
                       onChange={(e) => setI("sgst_percentage", e.target.value)} className="input-field" placeholder="0.00" />
                   </div>
+                  <div>
+                    <Label>Broker (Optional)</Label>
+                    <select
+                      value={currentItem.broker ?? ""}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || null;
+                        const broker = brokers.find((b) => b.id === val);
+                        setCurrentItem((prev) => ({
+                          ...prev,
+                          broker: val,
+                          broker_commission_rate: broker?.default_commission_amount
+                            ? String(broker.default_commission_amount) : "",
+                        }));
+                      }}
+                      className="input-field"
+                    >
+                      <option value="">No Broker</option>
+                      {brokers.map((b) => (
+                        <option key={b.id} value={b.id} className="text-black">{b.broker_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Commission Rate (₹/bag)</Label>
+                    <input type="number" step="0.01" min="0" value={currentItem.broker_commission_rate}
+                      onChange={(e) => setI("broker_commission_rate", e.target.value)}
+                      className="input-field" placeholder="0.00" disabled={!currentItem.broker} />
+                    {currentItem.broker && currentItem.broker_commission_rate && parseFloat(currentItem.broker_commission_rate) > 0 && currentItem.quantity && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        ₹{currentItem.broker_commission_rate}/bag × {currentItem.quantity} bags = ₹{(parseFloat(currentItem.broker_commission_rate) * parseInt(currentItem.quantity || "0")).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <button type="button" onClick={addItemToList}
                   className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
@@ -512,6 +493,7 @@ const Addstock = () => {
                               <span>Price: ₹{it.purchase_price}</span>
                               {it.cgst_percentage && parseFloat(it.cgst_percentage) > 0 && <span>CGST: {it.cgst_percentage}%</span>}
                               {it.sgst_percentage && parseFloat(it.sgst_percentage) > 0 && <span>SGST: {it.sgst_percentage}%</span>}
+                              {it.broker && <span className="text-purple-500 dark:text-purple-400">Broker: {getBrokerName(it.broker)}{it.broker_commission_rate && parseFloat(it.broker_commission_rate) > 0 ? ` @₹${it.broker_commission_rate}/bag` : ""}</span>}
                               <span>MFG: {dayjs(it.manufacture_date).format("DD MMM YYYY")}</span>
                             </div>
                           </div>
@@ -579,21 +561,6 @@ const Addstock = () => {
                 {shared.labour_cost && parseFloat(shared.labour_cost) > 0 && (
                   <div><div className="text-xs theme-text">Labour Cost</div><div className="font-medium theme-text-2">{fmt(shared.labour_cost)}</div></div>
                 )}
-                {selectedBroker && (
-                  <div><div className="text-xs theme-text">Broker</div><div className="font-medium theme-text-2">{selectedBroker.broker_name}</div></div>
-                )}
-                {shared.broker_commission_rate && parseFloat(shared.broker_commission_rate) > 0 && (
-                  <div>
-                    <div className="text-xs theme-text">Commission Rate</div>
-                    <div className="font-medium theme-text-2">₹{shared.broker_commission_rate}/bag</div>
-                  </div>
-                )}
-                {commissionTotal !== null && (
-                  <div>
-                    <div className="text-xs theme-text">Total Commission</div>
-                    <div className="font-medium theme-text-2">₹{commissionTotal.toFixed(2)} <span className="text-xs font-normal text-gray-400">({totalBags} bags × ₹{shared.broker_commission_rate})</span></div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -620,6 +587,14 @@ const Addstock = () => {
                         <span>MFG: <strong>{dayjs(it.manufacture_date).format("DD MMM YYYY")}</strong></span>
                         {it.cgst_percentage && parseFloat(it.cgst_percentage) > 0 && <span>CGST: <strong>{it.cgst_percentage}%</strong></span>}
                         {it.sgst_percentage && parseFloat(it.sgst_percentage) > 0 && <span>SGST: <strong>{it.sgst_percentage}%</strong></span>}
+                        {it.broker && (
+                          <span className="text-purple-500 dark:text-purple-400">
+                            Broker: <strong>{getBrokerName(it.broker)}</strong>
+                            {it.broker_commission_rate && parseFloat(it.broker_commission_rate) > 0 && (
+                              <> @ ₹{it.broker_commission_rate}/bag = ₹{(parseFloat(it.broker_commission_rate) * parseInt(it.quantity || "0")).toFixed(2)}</>
+                            )}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

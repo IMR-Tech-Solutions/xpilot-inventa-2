@@ -549,11 +549,17 @@ class UserTransporterReportView(APIView):
         total_stock_cost = 0.0
         total_delivery_cost = 0.0
 
+        # Show transport cost once per invoice (not once per stock entry)
+        seen_invoices = set()
         for e in stock_qs.order_by('-created_at'):
+            invoice_id = e.vendor_invoice_id
+            if invoice_id in seen_invoices:
+                continue
+            seen_invoices.add(invoice_id)
             cost = float(e.transporter_cost or 0)
             total_stock_cost += cost
             entries.append({
-                'id': f'stock-{e.id}',
+                'id': f'stock-{e.vendor_invoice_id or e.id}',
                 'type': 'Stock Purchase',
                 'date': e.created_at,
                 'reference': e.vendor_invoice.invoice_number if e.vendor_invoice else f'SE-{e.id}',
@@ -587,7 +593,6 @@ class UserTransporterReportView(APIView):
                 'notes': f"{o.shop_owner.first_name} {o.shop_owner.last_name}".strip(),
             })
 
-        # Sort combined list by date desc
         entries.sort(key=lambda x: x['date'], reverse=True)
 
         # Transporters this user has used (either source)
@@ -656,11 +661,17 @@ class AdminTransporterReportView(APIView):
         total_stock_cost = 0.0
         total_delivery_cost = 0.0
 
+        # Show transport cost once per invoice (not once per stock entry)
+        seen_invoices = set()
         for e in stock_qs.order_by('-created_at'):
+            invoice_id = e.vendor_invoice_id
+            if invoice_id in seen_invoices:
+                continue
+            seen_invoices.add(invoice_id)
             cost = float(e.transporter_cost or 0)
             total_stock_cost += cost
             entries.append({
-                'id': f'stock-{e.id}',
+                'id': f'stock-{e.vendor_invoice_id or e.id}',
                 'type': 'Stock Purchase',
                 'date': e.created_at,
                 'reference': e.vendor_invoice.invoice_number if e.vendor_invoice else f'SE-{e.id}',

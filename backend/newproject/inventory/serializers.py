@@ -24,6 +24,12 @@ class StockItemSerializer(serializers.Serializer):
     cgst_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=0)
     sgst_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=0)
     manufacture_date = serializers.DateField(required=False, allow_null=True)
+    broker = serializers.PrimaryKeyRelatedField(
+        queryset=Broker.objects.all(), required=False, allow_null=True
+    )
+    broker_commission_rate = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, default=0
+    )
 
     def validate_purchase_price(self, value):
         if value <= 0:
@@ -46,13 +52,6 @@ class BulkStockEntrySerializer(serializers.Serializer):
     labour_cost = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, default=0
     )
-    broker = serializers.PrimaryKeyRelatedField(
-        queryset=Broker.objects.all(), required=False, allow_null=True
-    )
-    broker_commission_rate = serializers.DecimalField(
-        max_digits=10, decimal_places=2, required=False, default=0,
-        help_text="Rate per bag/unit (e.g. 5 for ₹5/bag)"
-    )
     items = StockItemSerializer(many=True)
 
     def validate_items(self, value):
@@ -71,18 +70,24 @@ class BulkStockEntrySerializer(serializers.Serializer):
         if transporter and not _owned_by(transporter, user):
             raise serializers.ValidationError({'transporter': 'Invalid transporter.'})
 
-        broker = attrs.get('broker')
-        if broker and not _owned_by(broker, user):
-            raise serializers.ValidationError({'broker': 'Invalid broker.'})
-
         for item in attrs.get('items', []):
             product = item['product']
             if product.user != user:
                 raise serializers.ValidationError(
                     {'items': f"Product '{product.product_name}' does not belong to you."}
                 )
+            broker = item.get('broker')
+            if broker and not _owned_by(broker, user):
+                raise serializers.ValidationError(
+                    {'items': f"Broker for '{product.product_name}' is invalid."}
+                )
+            rate = item.get('broker_commission_rate', Decimal('0')) or Decimal('0')
+            if rate < 0:
+                raise serializers.ValidationError(
+                    {'items': f"Broker commission rate for '{product.product_name}' cannot be negative."}
+                )
 
-        for field in ['transporter_cost', 'varne_cost', 'labour_cost', 'broker_commission_rate']:
+        for field in ['transporter_cost', 'varne_cost', 'labour_cost']:
             val = attrs.get(field)
             if val is not None and val < 0:
                 raise serializers.ValidationError({field: f'{field} cannot be negative.'})
@@ -96,12 +101,9 @@ class BulkStockEntrySerializer(serializers.Serializer):
         transporter_cost = validated_data.get('transporter_cost', Decimal('0'))
         varne_cost = validated_data.get('varne_cost', Decimal('0'))
         labour_cost = validated_data.get('labour_cost', Decimal('0'))
-        broker = validated_data.get('broker')
-        broker_commission_rate = validated_data.get('broker_commission_rate', Decimal('0'))
         items = validated_data['items']
 
         with transaction.atomic():
-            # One invoice for all items
             total_amount = sum(
                 item['purchase_price'] * Decimal(str(item['quantity']))
                 for item in items
@@ -122,7 +124,9 @@ class BulkStockEntrySerializer(serializers.Serializer):
                 cgst_amount = (purchase_price * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
                 sgst_amount = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
 
-                commission_amount = (broker_commission_rate * Decimal(str(quantity))).quantize(Decimal('0.01'))
+                item_broker = item.get('broker')
+                item_rate = item.get('broker_commission_rate', Decimal('0')) or Decimal('0')
+                commission_amount = (item_rate * Decimal(str(quantity))).quantize(Decimal('0.01'))
 
                 entry = StockEntry.objects.create(
                     user=user,
@@ -139,14 +143,13 @@ class BulkStockEntrySerializer(serializers.Serializer):
                     labour_cost=labour_cost,
                     transporter=transporter,
                     transporter_cost=transporter_cost,
-                    broker=broker,
-                    broker_commission_rate=broker_commission_rate,
+                    broker=item_broker,
+                    broker_commission_rate=item_rate,
                     broker_commission_amount=commission_amount,
                     manufacture_date=item.get('manufacture_date'),
                 )
                 created_entries.append(entry)
 
-                # Increment product current_stock atomically
                 Product.objects.filter(pk=product.pk).update(
                     current_stock=F('current_stock') + quantity
                 )
