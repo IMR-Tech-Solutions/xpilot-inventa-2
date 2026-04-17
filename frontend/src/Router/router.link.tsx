@@ -35,6 +35,9 @@ const FranchiseReport = lazy(
 const AdminFranchiseReport = lazy(
   () => import("../Admin/Reports/adminfranchisereport/AdminFranchiseReport"),
 );
+const ShopOwnerPurchaseReport = lazy(
+  () => import("../pages/Reports/shopownerpurchasereport/ShopOwnerPurchaseReport"),
+);
 //////////////////////////////////////////////////////////// Reports
 const Purchaseinvoice = lazy(
   () => import("../pages/Purchaseinvoice/Purchaseinvoice"),
@@ -502,6 +505,13 @@ export const websiteRoutes = [
     link: all_routes.transporterreport,
     module: all_modules.transportereport,
     element: <TransporterReport />,
+  },
+  {
+    id: "60",
+    name: "Shop Owner Purchase Report",
+    link: all_routes.shopownerpurchasereport,
+    module: all_modules.shopownerpurchasereport,
+    element: <ShopOwnerPurchaseReport />,
   },
 ];
 

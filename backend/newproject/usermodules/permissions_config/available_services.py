@@ -189,4 +189,11 @@ AVAILABLE_SERVICES = [
         "method": "view-purchase-report",
         "module": "transportereport",
     },
+
+    # --- Shop Owner ---
+    {
+        "name": "Shop Owner Purchase Report",
+        "method": "shopowner-purchase-report",
+        "module": "shopownerpurchasereport",
+    },
 ]

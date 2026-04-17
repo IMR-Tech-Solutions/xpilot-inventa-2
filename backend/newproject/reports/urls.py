@@ -5,6 +5,7 @@ from .views import (
     UserBrokerReportView, AdminBrokerReportView,
     UserTransporterReportView, AdminTransporterReportView,
     UserFranchiseReportView, AdminFranchiseReportView,
+    ShopOwnerPurchaseReportView,
 )
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     path('reports/admin/transporter/', AdminTransporterReportView.as_view()),
     path('reports/franchise/', UserFranchiseReportView.as_view()),
     path('reports/admin/franchise/', AdminFranchiseReportView.as_view()),
+    path('reports/shop-owner/purchase/', ShopOwnerPurchaseReportView.as_view()),
 ]

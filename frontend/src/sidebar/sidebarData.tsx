@@ -174,6 +174,11 @@ export const reportItems: NavItem[] = [
         path: all_routes.transporterreport,
         module: all_modules.transportereport,
       },
+      {
+        name: "Franchise Purchase Report",
+        path: all_routes.shopownerpurchasereport,
+        module: all_modules.shopownerpurchasereport,
+      },
     ],
   },
 ];
