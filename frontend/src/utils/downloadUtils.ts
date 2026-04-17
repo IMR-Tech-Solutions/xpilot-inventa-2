@@ -81,11 +81,27 @@ export const downloadPDF = (
   doc.line(14, y, pageWidth - 14, y);
   y += 5;
 
-  const head = [columns.map((col) => col.label)];
+  const fmtDate = (val: string): string => {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}-${mm}-${d.getFullYear()}`;
+  };
+
+  const isISODate = (val: unknown): val is string =>
+    typeof val === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val);
+
+  const head = [
+    columns.map((col) =>
+      /date/i.test(col.label) ? `${col.label} (DD-MM-YYYY)` : col.label
+    ),
+  ];
   const body = data.map((row, index) =>
     columns.map((col) => {
       if (col.key === "__srno") return index + 1;
-      return row[col.key] ?? "";
+      const val = row[col.key] ?? "";
+      return isISODate(val) ? fmtDate(val) : val;
     })
   );
 
