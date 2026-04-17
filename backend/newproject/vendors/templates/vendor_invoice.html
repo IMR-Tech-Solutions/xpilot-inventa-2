@@ -68,32 +68,63 @@
         </div>
       </div>
 
-      <!-- Vendor Info -->
-      <div class="info-section">
-        <h3>Vendor Information</h3>
-        <p><strong>Name:</strong> {{ vendor_name }}</p>
-        <p><strong>Email:</strong> {{ vendor_email|default:"N/A" }}</p>
-        <p><strong>Phone:</strong> {{ vendor_contact|default:"N/A" }}</p>
-        {% if vendor_address and vendor_address != 'N/A' %}
-        <p><strong>Address:</strong> {{ vendor_address }}</p>
+      <!-- Vendor + Transporter Info -->
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <div class="info-section" style="flex:1; margin-bottom:0;">
+          <h3>Vendor Information</h3>
+          <p><strong>Name:</strong> {{ vendor_name }}</p>
+          <p><strong>Email:</strong> {{ vendor_email|default:"N/A" }}</p>
+          <p><strong>Phone:</strong> {{ vendor_contact|default:"N/A" }}</p>
+          {% if vendor_address and vendor_address != 'N/A' %}
+          <p><strong>Address:</strong> {{ vendor_address }}</p>
+          {% endif %}
+          <p><strong>GST:</strong> {{ vendor_gst|default:"N/A" }}</p>
+        </div>
+        {% if transporter_name %}
+        <div class="info-section" style="flex:1; margin-bottom:0;">
+          <h3>Transporter Information</h3>
+          <p><strong>Name:</strong> {{ transporter_name }}</p>
+          <p><strong>Phone:</strong> {{ transporter_contact|default:"N/A" }}</p>
+          {% if transporter_vehicle %}
+          <p><strong>Vehicle No:</strong> {{ transporter_vehicle }}</p>
+          {% endif %}
+          {% if transporter_cost > 0 %}
+          <p><strong>Transport Cost:</strong> &#8377;{{ transporter_cost|floatformat:2 }}</p>
+          {% endif %}
+        </div>
         {% endif %}
-        <p><strong>GST:</strong> {{ vendor_gst|default:"N/A" }}</p>
       </div>
+
+      <!-- Broker Info -->
+      {% if brokers %}
+      <div class="info-section" style="margin-bottom:15px;">
+        <h3>Broker Information</h3>
+        <div style="display:flex; gap:30px; flex-wrap:wrap;">
+          {% for broker in brokers %}
+          <div>
+            <p><strong>Name:</strong> {{ broker.name }}</p>
+            <p><strong>Phone:</strong> {{ broker.phone }}</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Items Table -->
       <table>
         <thead>
           <tr>
             <th style="width:4%;">#</th>
-            <th style="width:24%;">Product</th>
-            <th style="width:8%;">HSN</th>
-            <th style="width:7%;">Unit</th>
-            <th style="width:10%;">Price</th>
-            <th style="width:7%;">Qty</th>
-            <th style="width:10%;">CGST</th>
-            <th style="width:10%;">SGST</th>
+            <th style="width:22%;">Product</th>
+            <th style="width:7%;">HSN</th>
+            <th style="width:6%;">Unit</th>
+            <th style="width:8%;">Price</th>
+            <th style="width:6%;">Qty</th>
+            <th style="width:9%;">CGST</th>
+            <th style="width:9%;">SGST</th>
             <th style="width:9%;">MFG Date</th>
-            <th style="width:11%;">Total</th>
+            <th style="width:11%;">Broker</th>
+            <th style="width:9%;">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -120,6 +151,14 @@
               {% endif %}
             </td>
             <td class="center">{{ item.mfg_date|default:"N/A" }}</td>
+            <td class="center">
+              {% if item.broker_name %}
+                {{ item.broker_name }}<br/>
+                <small>&#8377;{{ item.broker_commission_rate|floatformat:0 }}/bag = &#8377;{{ item.broker_commission_amount|floatformat:2 }}</small>
+              {% else %}
+                —
+              {% endif %}
+            </td>
             <td class="num">&#8377;{{ item.total_price|floatformat:2 }}</td>
           </tr>
           {% endfor %}
@@ -143,6 +182,30 @@
           <div class="totals-row">
             <span>SGST:</span>
             <span>&#8377;{{ total_sgst|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% if transporter_cost > 0 %}
+          <div class="totals-row">
+            <span>Transport Cost{% if transporter_name %} ({{ transporter_name }}){% endif %}:</span>
+            <span>&#8377;{{ transporter_cost|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% if varne_cost > 0 %}
+          <div class="totals-row">
+            <span>Varne Cost:</span>
+            <span>&#8377;{{ varne_cost|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% if labour_cost > 0 %}
+          <div class="totals-row">
+            <span>Labour Cost:</span>
+            <span>&#8377;{{ labour_cost|floatformat:2 }}</span>
+          </div>
+          {% endif %}
+          {% if total_broker_commission > 0 %}
+          <div class="totals-row">
+            <span>Broker Commission:</span>
+            <span>&#8377;{{ total_broker_commission|floatformat:2 }}</span>
           </div>
           {% endif %}
           <div class="totals-row grand-total">

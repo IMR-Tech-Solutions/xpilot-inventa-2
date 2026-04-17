@@ -39,7 +39,26 @@ class VendorInvoicePDFBaseView(APIView):
         subtotal = 0
         total_cgst = 0
         total_sgst = 0
+        total_broker_commission = 0
         items = []
+
+        # Shared invoice-level costs are stored on each entry but are the same value
+        first_entry = entries.first()
+        transporter_cost = float(first_entry.transporter_cost or 0)
+        varne_cost = float(first_entry.varne_cost or 0)
+        labour_cost = float(first_entry.labour_cost or 0)
+        transporter_name = (
+            first_entry.transporter.transporter_name
+            if first_entry.transporter else None
+        )
+        transporter_contact = (
+            first_entry.transporter.contact_number or 'N/A'
+            if first_entry.transporter else None
+        )
+        transporter_vehicle = (
+            first_entry.transporter.vehicle_number or None
+            if first_entry.transporter else None
+        )
 
         for entry in entries:
             product = entry.product
@@ -48,9 +67,11 @@ class VendorInvoicePDFBaseView(APIView):
             sgst_pct = float(entry.sgst_percentage or 0)
             cgst_amt = float(entry.cgst or 0)
             sgst_amt = float(entry.sgst or 0)
+            broker_commission = float(entry.broker_commission_amount or 0)
             subtotal += item_total
             total_cgst += cgst_amt
             total_sgst += sgst_amt
+            total_broker_commission += broker_commission
 
             items.append({
                 "product_name": product.product_name,
@@ -64,9 +85,27 @@ class VendorInvoicePDFBaseView(APIView):
                 "sgst_percentage": sgst_pct,
                 "sgst_amount": sgst_amt,
                 "mfg_date": format_date(entry.manufacture_date),
+                "broker_name": entry.broker.broker_name if entry.broker else None,
+                "broker_commission_rate": float(entry.broker_commission_rate or 0),
+                "broker_commission_amount": broker_commission,
             })
 
-        grand_total = subtotal + total_cgst + total_sgst
+        # Collect unique brokers across all items
+        seen_broker_ids = set()
+        brokers = []
+        for entry in entries:
+            if entry.broker and entry.broker.id not in seen_broker_ids:
+                seen_broker_ids.add(entry.broker.id)
+                brokers.append({
+                    "name": entry.broker.broker_name,
+                    "phone": entry.broker.phone_number or 'N/A',
+                })
+
+        grand_total = (
+            subtotal + total_cgst + total_sgst
+            + transporter_cost + varne_cost + labour_cost
+            + total_broker_commission
+        )
 
         context = {
             "invoice_number": invoice.invoice_number,
@@ -81,6 +120,14 @@ class VendorInvoicePDFBaseView(APIView):
             "subtotal": subtotal,
             "total_cgst": total_cgst,
             "total_sgst": total_sgst,
+            "transporter_name": transporter_name,
+            "transporter_contact": transporter_contact,
+            "transporter_vehicle": transporter_vehicle,
+            "transporter_cost": transporter_cost,
+            "brokers": brokers,
+            "varne_cost": varne_cost,
+            "labour_cost": labour_cost,
+            "total_broker_commission": total_broker_commission,
             "grand_total": grand_total,
             "user_name": f"{request.user.first_name} {request.user.last_name}".strip(),
         }
