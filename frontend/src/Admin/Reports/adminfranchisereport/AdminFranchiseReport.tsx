@@ -322,7 +322,14 @@ export default function AdminFranchiseReport() {
                     { label: "Remaining", key: "remaining_amount" },
                     { label: "Date", key: "order_date" },
                   ],
-                  "admin-franchise-report"
+                  "admin-franchise-report",
+                  {
+                    title: "Admin Franchise Report",
+                    subtitle: "System-wide stock sold from managers to franchise owners",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
             >

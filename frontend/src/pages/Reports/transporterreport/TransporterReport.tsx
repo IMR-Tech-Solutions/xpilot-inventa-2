@@ -140,7 +140,14 @@ export default function TransporterReport() {
                     { label: "Cost (₹)", key: "transporter_cost" },
                     { label: "Notes", key: "notes" },
                   ],
-                  "transporter-report"
+                  "transporter-report",
+                  {
+                    title: "Transporter Report",
+                    subtitle: "Transporter usage — stock purchases & franchise deliveries",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"

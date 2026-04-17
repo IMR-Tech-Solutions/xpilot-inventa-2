@@ -143,7 +143,14 @@ export default function PurchaseReport() {
                     { label: "Mfg Date", key: "manufacture_date" },
                     { label: "Added On", key: "created_at" },
                   ],
-                  "purchase-report"
+                  "purchase-report",
+                  {
+                    title: "Purchase Report",
+                    subtitle: "Stock purchase entries — vendor, broker, transporter breakdown",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"

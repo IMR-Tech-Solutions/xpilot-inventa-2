@@ -288,7 +288,14 @@ export default function AdminSalesReport() {
                     { label: "Remaining", key: "remaining_amount" },
                     { label: "Date", key: "created_at" },
                   ],
-                  "admin-sales-report"
+                  "admin-sales-report",
+                  {
+                    title: "Admin Sales Report",
+                    subtitle: "System-wide POS retail sales across all users",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
             >

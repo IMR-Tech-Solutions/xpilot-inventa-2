@@ -140,16 +140,23 @@ export default function BrokerReport() {
                   [
                     { label: "Bill Date", key: "created_at" },
                     { label: "Party Name", key: "vendor" },
+                    { label: "Broker", key: "broker_name" },
                     { label: "Stock Item", key: "product_name" },
                     { label: "Bags", key: "quantity" },
-                    { label: "Quantity (ton)", key: "tonnes" },
+                    { label: "Qty (ton)", key: "tonnes" },
                     { label: "Sauda Rate", key: "purchase_price" },
-                    { label: "Commission Rate", key: "broker_commission_rate" },
-                    { label: "Commission Amount", key: "broker_commission" },
-                    { label: "Broker", key: "broker_name" },
+                    { label: "Comm. Rate", key: "broker_commission_rate" },
+                    { label: "Comm. Amount", key: "broker_commission" },
                     { label: "Invoice No.", key: "invoice_number" },
                   ],
-                  "broker-report"
+                  "broker-report",
+                  {
+                    title: "Broker Report",
+                    subtitle: "Stock entries with broker commission breakdown",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -257,6 +264,7 @@ export default function BrokerReport() {
                     <tr className="border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                       <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Bill Date</th>
                       <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Party Name</th>
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Broker</th>
                       <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Stock Item</th>
                       <th className="text-right py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Bags</th>
                       <th className="text-right py-3 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Quantity</th>
@@ -275,7 +283,12 @@ export default function BrokerReport() {
                           </td>
                           <td className="py-3 px-3">
                             <div className="text-gray-900 dark:text-gray-100 font-medium">{entry.vendor}</div>
-                            <div className="text-xs text-gray-400">{entry.broker_name}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-medium text-gray-800 dark:text-gray-200">{entry.broker_name}</div>
+                            {entry.broker_phone && (
+                              <div className="text-xs text-gray-400">{entry.broker_phone}</div>
+                            )}
                           </td>
                           <td className="py-3 px-3">
                             <div className="font-medium text-gray-900 dark:text-gray-100">{entry.product_name}</div>
@@ -309,7 +322,7 @@ export default function BrokerReport() {
                         </tr>
                         {expandedEntry === entry.id && (
                           <tr key={`${entry.id}-details`} className="bg-gray-50 dark:bg-gray-800/30">
-                            <td colSpan={9} className="px-6 py-3">
+                            <td colSpan={10} className="px-6 py-3">
                               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs">
                                 <div>
                                   <span className="text-gray-500 dark:text-gray-400">Invoice No.</span>
@@ -343,7 +356,7 @@ export default function BrokerReport() {
                   {/* Totals row */}
                   <tfoot>
                     <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 font-semibold">
-                      <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300 uppercase" colSpan={3}>Total</td>
+                      <td className="py-3 px-3 text-xs text-gray-600 dark:text-gray-300 uppercase" colSpan={4}>Total</td>
                       <td className="py-3 px-3 text-right text-gray-900 dark:text-white">
                         {totalBags.toLocaleString("en-IN")}
                       </td>

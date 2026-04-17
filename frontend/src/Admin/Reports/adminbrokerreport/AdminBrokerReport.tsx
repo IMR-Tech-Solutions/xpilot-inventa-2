@@ -266,17 +266,24 @@ export default function AdminBrokerReport() {
                   [
                     { label: "Bill Date", key: "created_at" },
                     { label: "Party Name", key: "vendor" },
+                    { label: "Broker", key: "broker_name" },
                     { label: "Stock Item", key: "product_name" },
                     { label: "Bags", key: "quantity" },
-                    { label: "Quantity (ton)", key: "tonnes" },
+                    { label: "Qty (ton)", key: "tonnes" },
                     { label: "Sauda Rate", key: "purchase_price" },
-                    { label: "Commission Rate", key: "broker_commission_rate" },
-                    { label: "Commission Amount", key: "broker_commission" },
-                    { label: "Broker", key: "broker_name" },
+                    { label: "Comm. Rate", key: "broker_commission_rate" },
+                    { label: "Comm. Amount", key: "broker_commission" },
                     { label: "Added By", key: "added_by" },
                     { label: "Invoice No.", key: "invoice_number" },
                   ],
-                  "admin-broker-report"
+                  "admin-broker-report",
+                  {
+                    title: "Admin Broker Report",
+                    subtitle: "System-wide broker commission entries across all users",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
             >

@@ -121,8 +121,8 @@ class BulkStockEntrySerializer(serializers.Serializer):
                 purchase_price = item['purchase_price']
                 cgst_pct = item.get('cgst_percentage', Decimal('0')) or Decimal('0')
                 sgst_pct = item.get('sgst_percentage', Decimal('0')) or Decimal('0')
-                cgst_amount = (purchase_price * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
-                sgst_amount = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+                cgst_amount = (purchase_price * Decimal(str(quantity)) * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+                sgst_amount = (purchase_price * Decimal(str(quantity)) * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
 
                 item_broker = item.get('broker')
                 item_rate = item.get('broker_commission_rate', Decimal('0')) or Decimal('0')
@@ -220,8 +220,8 @@ class StockEntryCreateSerializer(serializers.ModelSerializer):
         purchase_price = validated_data['purchase_price']
         cgst_pct = validated_data.get('cgst_percentage', Decimal('0')) or Decimal('0')
         sgst_pct = validated_data.get('sgst_percentage', Decimal('0')) or Decimal('0')
-        validated_data['cgst'] = (purchase_price * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
-        validated_data['sgst'] = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+        validated_data['cgst'] = (purchase_price * Decimal(str(quantity)) * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+        validated_data['sgst'] = (purchase_price * Decimal(str(quantity)) * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
 
         with transaction.atomic():
             total_amount = purchase_price * Decimal(str(quantity))
@@ -328,10 +328,10 @@ class StockEntryUpdateSerializer(serializers.ModelSerializer):
         purchase_price = instance.purchase_price
         if 'cgst_percentage' in validated_data:
             cgst_pct = validated_data['cgst_percentage'] or Decimal('0')
-            validated_data['cgst'] = (purchase_price * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+            validated_data['cgst'] = (purchase_price * Decimal(str(instance.quantity)) * cgst_pct / Decimal('100')).quantize(Decimal('0.01'))
         if 'sgst_percentage' in validated_data:
             sgst_pct = validated_data['sgst_percentage'] or Decimal('0')
-            validated_data['sgst'] = (purchase_price * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
+            validated_data['sgst'] = (purchase_price * Decimal(str(instance.quantity)) * sgst_pct / Decimal('100')).quantize(Decimal('0.01'))
         # Recalculate commission amount if rate changed
         if 'broker_commission_rate' in validated_data:
             rate = validated_data['broker_commission_rate'] or Decimal('0')

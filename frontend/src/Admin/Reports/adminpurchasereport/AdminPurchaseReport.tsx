@@ -238,7 +238,14 @@ export default function AdminPurchaseReport() {
                     { label: "Mfg Date", key: "manufacture_date" },
                     { label: "Added On", key: "created_at" },
                   ],
-                  "admin-purchase-report"
+                  "admin-purchase-report",
+                  {
+                    title: "Admin Purchase Report",
+                    subtitle: "System-wide stock purchase entries across all users",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
             >

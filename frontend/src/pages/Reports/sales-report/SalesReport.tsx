@@ -155,7 +155,14 @@ export default function SalesReport() {
                     { label: "Remaining", key: "remaining_amount" },
                     { label: "Date", key: "created_at" },
                   ],
-                  "sales-report"
+                  "sales-report",
+                  {
+                    title: "Sales Report",
+                    subtitle: "POS retail sales overview",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"

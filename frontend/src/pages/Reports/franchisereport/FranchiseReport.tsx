@@ -163,7 +163,14 @@ export default function FranchiseReport() {
                     { label: "Remaining", key: "remaining_amount" },
                     { label: "Date", key: "order_date" },
                   ],
-                  "franchise-report"
+                  "franchise-report",
+                  {
+                    title: "Franchise Report",
+                    subtitle: "Stock fulfilled and sold to franchise owners",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
               className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"

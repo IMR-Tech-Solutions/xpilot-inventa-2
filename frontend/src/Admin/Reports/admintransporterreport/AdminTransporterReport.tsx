@@ -251,7 +251,14 @@ export default function AdminTransporterReport() {
                     { label: "Cost (₹)", key: "transporter_cost" },
                     { label: "Notes", key: "notes" },
                   ],
-                  "admin-transporter-report"
+                  "admin-transporter-report",
+                  {
+                    title: "Admin Transporter Report",
+                    subtitle: "System-wide transporter usage — stock purchases & franchise deliveries",
+                    dateRange: startDate && endDate
+                      ? `${startDate} to ${endDate}`
+                      : startDate ? `From ${startDate}` : endDate ? `To ${endDate}` : "All Dates",
+                  }
                 )
               }
             >
