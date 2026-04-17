@@ -1,1 +1,0 @@
-import{a as c}from"./index-5CB9DBV4.js";const i=async(o,l={})=>{var s;let a=[],e=o,r={...l};try{for(;e;){const n=(await c.get(e,{params:r})).data;a=[...a,...n.results],e=n.next,r={}}return a}catch(t){throw console.error("Error fetching all paginated data:",t),((s=t==null?void 0:t.response)==null?void 0:s.data)||t}};export{i as g};

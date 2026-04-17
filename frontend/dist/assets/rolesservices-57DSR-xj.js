@@ -1,1 +1,0 @@
-import{a as s}from"./index-5CB9DBV4.js";import{g as o}from"./getpaginateddata-DWNex_w1.js";const l=async e=>{await s.post("new-role/",e)},n=()=>o("all-roles/"),i=async e=>{await s.delete(`delete-role/${e}/`)},c=async e=>(await s.get(`user-permission/${e}/`)).data,p=async(e,a)=>{await s.post(`user-permission/${e}/`,a)};export{l as a,c as b,i as d,n as g,p as u};
