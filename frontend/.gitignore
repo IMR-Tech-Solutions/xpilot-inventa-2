@@ -62,5 +62,3 @@ lerna-debug.log*
 
 # macOS
 .DS_Store
-
-dist/

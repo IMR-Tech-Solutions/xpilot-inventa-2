@@ -1,0 +1,1 @@
+import{g as a}from"./getpaginateddata-DWNex_w1.js";import{a as s}from"./index-5CB9DBV4.js";const c=async t=>(await s.post("stock/bulk-add/",t)).data,n=()=>a("stock/"),i=async t=>(await s.get(`stock/product/${t}/`)).data;export{i as a,c as b,n as g};
