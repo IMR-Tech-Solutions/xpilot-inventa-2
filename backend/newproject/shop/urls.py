@@ -17,6 +17,7 @@ from .invoice_views import (
     ShopOwnerOrderItemInvoicePDFDownloadView, ShopOwnerOrderItemInvoicePDFView,
     ManagerOrderDeliveryChallanPDFDownloadView,
     ShopPaymentReceiptView, ShopPaymentReceiptDownloadView,
+    ShopOwnerOrderSalesInvoicePDFView, ShopOwnerOrderSalesInvoicePDFDownloadView,
 )
 
 urlpatterns = [
@@ -34,6 +35,8 @@ urlpatterns = [
     path('products/<int:product_id>/purchase-history/', ShopOwnerProductPurchaseHistoryView.as_view(), name='product_purchase_history'),
     path('orders/<int:order_id>/items/<int:item_id>/invoice/view/', ShopOwnerOrderItemInvoicePDFView.as_view(), name='shopowner-item-invoice-view'),
     path('orders/<int:order_id>/items/<int:item_id>/invoice/pdf/', ShopOwnerOrderItemInvoicePDFDownloadView.as_view(), name='shopowner-item-invoice-download'),
+    path('orders/<int:order_id>/sales-invoice/view/', ShopOwnerOrderSalesInvoicePDFView.as_view(), name='shopowner-sales-invoice-view'),
+    path('orders/<int:order_id>/sales-invoice/pdf/', ShopOwnerOrderSalesInvoicePDFDownloadView.as_view(), name='shopowner-sales-invoice-download'),
     #Request Handling
     path('manager/requests/pending/', ManagerPendingRequestsView.as_view(), name='manager-pending-requests'),
     path('manager/requests/<int:request_id>/', ManagerRequestDetailView.as_view(), name='manager-request-detail'),

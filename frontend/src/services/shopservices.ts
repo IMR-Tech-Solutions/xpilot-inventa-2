@@ -131,6 +131,34 @@ export const getshopownerproductinvoicedownload = async (
   return response.data;
 };
 
+// Shop owner whole-order sales invoice view
+export const getshopownerordersalesinvoiceview = async (orderID: number) => {
+  const response = await api.get(`orders/${orderID}/sales-invoice/view/`, {
+    responseType: "blob",
+  });
+  const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+  const pdfUrl = window.URL.createObjectURL(pdfBlob);
+  window.open(pdfUrl, "_blank");
+  return pdfUrl;
+};
+
+// Shop owner whole-order sales invoice download
+export const getshopownerordersalesinvoicedownload = async (orderID: number) => {
+  const response = await api.get(`orders/${orderID}/sales-invoice/pdf/`, {
+    responseType: "blob",
+  });
+  const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+  const downloadUrl = window.URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = `sales_invoice_${orderID}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(downloadUrl);
+  return response.data;
+};
+
 // Get managers orders
 export const getallmanagersshoporders = () => {
   const allManagerorders = getAllPaginatedData("manager/fulfilled-orders/");

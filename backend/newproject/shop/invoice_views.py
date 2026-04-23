@@ -10,6 +10,25 @@ from django.utils.dateparse import parse_date
 from accounts.models import UserMaster
 from django.http import Http404
 
+def build_item_transporter_context(item):
+    """Return transporter delivery details from item-level fields (per-manager)."""
+    t = item.item_delivery_transporter if item else None
+    if not t:
+        return {"has_transporter": False}
+    return {
+        "has_transporter": True,
+        "transporter_name": t.transporter_name or '',
+        "transporter_contact": t.contact_number or '',
+        "license_number": t.license_number or '',
+        "rc_number": t.rc_number or '',
+        "vehicle_number": t.vehicle_number or '',
+        "vehicle_type": t.vehicle_type or '',
+        "delivery_from": item.item_delivery_from or '',
+        "delivery_to": item.item_delivery_to or '',
+        "delivery_transporter_cost": float(item.item_delivery_transporter_cost) if item.item_delivery_transporter_cost else None,
+    }
+
+
 def build_transporter_context(order):
     """Return transporter delivery details dict for template context."""
     t = order.delivery_transporter
@@ -55,15 +74,18 @@ class ManagerOrderInvoicePDFBaseView(APIView):
 
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
-        ).select_related('product')
+        ).select_related('product', 'item_delivery_transporter')
 
         if not manager_items.exists():
             return None, None
 
         items = []
         total_amount = 0
+        first_item = None
 
         for item in manager_items:
+            if first_item is None:
+                first_item = item
             item_total = item.fulfilled_quantity * item.actual_price
             total_amount += item_total
             items.append({
@@ -89,7 +111,7 @@ class ManagerOrderInvoicePDFBaseView(APIView):
             "subtotal": float(total_amount),
             "total_amount": float(total_amount),
             "items": items,
-            "transporter": build_transporter_context(order),
+            "transporter": build_item_transporter_context(first_item),
         }
 
         html_string = render_to_string("manager_invoice.html", context)
@@ -147,13 +169,16 @@ class ManagerOrderDeliveryChallanPDFDownloadView(ManagerOrderInvoicePDFBaseView)
 
         manager_items = order.order_items.filter(
             fulfilled_by_manager=request.user
-        ).select_related('product')
+        ).select_related('product', 'item_delivery_transporter')
 
         if not manager_items.exists():
             return None, None
 
         items = []
+        first_item = None
         for item in manager_items:
+            if first_item is None:
+                first_item = item
             items.append({
                 "product_name": item.product.product_name,
                 "sku": item.product.sku_code or 'N/A',
@@ -172,7 +197,7 @@ class ManagerOrderDeliveryChallanPDFDownloadView(ManagerOrderInvoicePDFBaseView)
             "seller_phone": request.user.mobile_number or 'N/A',
             "seller_email": request.user.email or 'N/A',
             "items": items,
-            "transporter": build_transporter_context(order),
+            "transporter": build_item_transporter_context(first_item),
         }
 
         html_string = render_to_string("delivery_challan.html", context)
@@ -265,6 +290,92 @@ class ShopOwnerOrderItemInvoicePDFDownloadView(ShopOwnerOrderItemInvoicePDFBaseV
 
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename=purchase_invoice_{filename}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+class ShopOwnerOrderSalesInvoicePDFBaseView(APIView):
+    """Generate whole-order sales invoice for shop owner (completed orders only)"""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-access"
+
+    def generate_pdf(self, request, order_id):
+        order = get_object_or_404(
+            ShopOwnerOrders.objects.select_related('delivery_transporter'),
+            id=order_id,
+            shop_owner=request.user
+        )
+
+        if order.status != 'completed':
+            raise Http404("Sales invoice is only available for completed orders")
+
+        fulfilled_items = order.order_items.filter(
+            fulfilled_by_manager__isnull=False
+        ).select_related('product')
+
+        if not fulfilled_items.exists():
+            return None, None
+
+        items = []
+        total_amount = 0
+        for item in fulfilled_items:
+            item_total = item.fulfilled_quantity * item.actual_price
+            total_amount += item_total
+            items.append({
+                "product_name": item.product.product_name,
+                "sku": item.product.sku_code or 'N/A',
+                "unit": item.product.unit or 'N/A',
+                "quantity": item.fulfilled_quantity,
+                "unit_price": float(item.actual_price),
+                "total_price": float(item_total),
+            })
+
+        admin_user = UserMaster.objects.filter(is_superuser=True).first()
+
+        context = {
+            "invoice_title": "SALES INVOICE",
+            "hide_seller": True,
+            "order_number": order.order_number,
+            "date": format_date(order.created_at),
+            "year": order.created_at.year if order.created_at else '',
+            "customer_name": f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
+            "customer_phone": order.shop_owner.mobile_number or 'N/A',
+            "customer_email": order.shop_owner.email or 'N/A',
+            "subtotal": float(total_amount),
+            "total_amount": float(total_amount),
+            "items": items,
+            "transporter": build_transporter_context(order),
+        }
+
+        html_string = render_to_string("manager_invoice.html", context)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+        pdf_result = html.write_pdf()
+
+        return pdf_result, order.order_number
+
+
+class ShopOwnerOrderSalesInvoicePDFView(ShopOwnerOrderSalesInvoicePDFBaseView):
+    """View whole-order sales invoice inline in browser"""
+    def get(self, request, order_id):
+        pdf_result, order_number = self.generate_pdf(request, order_id)
+        if not pdf_result:
+            return HttpResponse("No fulfilled items found for this order.", status=404)
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename=sales_invoice_{order_number}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+class ShopOwnerOrderSalesInvoicePDFDownloadView(ShopOwnerOrderSalesInvoicePDFBaseView):
+    """Download whole-order sales invoice"""
+    def get(self, request, order_id):
+        pdf_result, order_number = self.generate_pdf(request, order_id)
+        if not pdf_result:
+            return HttpResponse("No fulfilled items found for this order.", status=404)
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=sales_invoice_{order_number}.pdf'
         response.write(pdf_result)
         return response
 

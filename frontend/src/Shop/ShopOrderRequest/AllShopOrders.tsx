@@ -51,6 +51,8 @@ interface ShopOrder {
   shop_owner_name: string;
   order_status: string;
   items_count: number;
+  manager_total_amount: number;
+  manager_remaining_amount: number;
   total_amount: number;
   payment_status: string;
   payment_method: string | null;
@@ -68,12 +70,15 @@ const MANAGER_STATUS_OPTIONS = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
-// Statuses where the order status dropdown should be locked
+// Statuses where the manager's status dropdown should be locked
 const LOCKED_STATUSES = new Set([
   "completed",
   "cancelled",
   "delivery_in_progress",
 ]);
+
+// Initial statuses where manager hasn't acted yet — show dropdown
+const UNLOCKED_STATUSES = new Set(["order_placed", "packing"]);
 
 const formatINR = (v: number) =>
   `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -220,10 +225,10 @@ const AllShopOrders = () => {
   const openPaymentModal = (order: ShopOrder) => {
     setPaymentOrder(order);
     form.setFieldsValue({
-      amount_paid: order.amount_paid || 0,
+      amount_paid: 0,
       payment_method: order.payment_method || "cash",
-      online_amount: order.online_amount || 0,
-      offline_amount: order.offline_amount || 0,
+      online_amount: 0,
+      offline_amount: 0,
     });
     setPaymentModalOpen(true);
   };
@@ -245,7 +250,7 @@ const AllShopOrders = () => {
 
       const result = await updateShopOrderPaymentService(paymentOrder.id, payload);
 
-      // Update local state
+      // Update local state with manager-specific values
       setShopOrders((prev) =>
         prev.map((o) =>
           o.id === paymentOrder.id
@@ -253,8 +258,9 @@ const AllShopOrders = () => {
                 ...o,
                 payment_status: result.payment_status,
                 payment_method: result.payment_method,
-                amount_paid: result.amount_paid,
-                remaining_amount: result.remaining_amount,
+                amount_paid: result.manager_amount_paid,
+                manager_remaining_amount: result.manager_remaining_amount,
+                remaining_amount: result.manager_remaining_amount,
                 online_amount: result.online_amount,
                 offline_amount: result.offline_amount,
               }
@@ -414,11 +420,11 @@ const AllShopOrders = () => {
       },
     },
     {
-      title: "Total Amount",
-      dataIndex: "total_amount",
-      key: "total_amount",
+      title: "My Total",
+      dataIndex: "manager_total_amount",
+      key: "manager_total_amount",
       align: "right" as const,
-      sorter: (a: ShopOrder, b: ShopOrder) => a.total_amount - b.total_amount,
+      sorter: (a: ShopOrder, b: ShopOrder) => a.manager_total_amount - b.manager_total_amount,
       render: (amount: number) => (
         <span className="font-medium">{formatINR(amount)}</span>
       ),
@@ -437,7 +443,7 @@ const AllShopOrders = () => {
             </Tag>
             {record.payment_status !== "paid" && (
               <span className="text-xs text-red-500">
-                Due: {formatINR(record.remaining_amount)}
+                Due: {formatINR(record.manager_remaining_amount)}
               </span>
             )}
             {record.payment_status === "paid" && (
@@ -509,7 +515,7 @@ const AllShopOrders = () => {
   // ── Computed remaining in modal ────────────────────────────────────────────
   const computedRemaining =
     paymentOrder
-      ? Math.max(0, paymentOrder.total_amount - (watchedAmountPaid || 0))
+      ? Math.max(0, paymentOrder.manager_remaining_amount - (watchedAmountPaid || 0))
       : 0;
 
   return (
@@ -695,15 +701,15 @@ const AllShopOrders = () => {
               <Descriptions.Item label="Franchise">
                 {paymentOrder.shop_owner_name}
               </Descriptions.Item>
-              <Descriptions.Item label="Total Amount">
-                <strong>{formatINR(paymentOrder.total_amount)}</strong>
+              <Descriptions.Item label="My Total">
+                <strong>{formatINR(paymentOrder.manager_total_amount)}</strong>
               </Descriptions.Item>
               <Descriptions.Item label="Already Paid">
-                {formatINR(paymentOrder.amount_paid)}
+                {formatINR(paymentOrder.manager_total_amount - paymentOrder.manager_remaining_amount)}
               </Descriptions.Item>
               <Descriptions.Item label="Remaining">
                 <span className="text-red-500 font-medium">
-                  {formatINR(paymentOrder.remaining_amount)}
+                  {formatINR(paymentOrder.manager_remaining_amount)}
                 </span>
               </Descriptions.Item>
             </Descriptions>
@@ -716,17 +722,17 @@ const AllShopOrders = () => {
                   { required: true, message: "Enter amount paid" },
                   {
                     validator: (_, value) =>
-                      value >= 0 && value <= paymentOrder.total_amount
+                      value >= 0 && value <= paymentOrder.manager_total_amount
                         ? Promise.resolve()
                         : Promise.reject(
-                            `Must be between 0 and ${formatINR(paymentOrder.total_amount)}`
+                            `Must be between 0 and ${formatINR(paymentOrder.manager_total_amount)}`
                           ),
                   },
                 ]}
               >
                 <InputNumber
                   min={0}
-                  max={paymentOrder.total_amount}
+                  max={paymentOrder.manager_total_amount}
                   style={{ width: "100%" }}
                   prefix="₹"
                   precision={2}

@@ -40,6 +40,8 @@ interface OrderData {
   shop_owner_name: string;
   shop_owner_phone: string;
   total_amount: number;
+  manager_total: number;
+  manager_remaining: number;
   amount_paid: number;
   remaining_amount: number;
   notes: string;
@@ -281,8 +283,8 @@ const ShopOrderStatement = () => {
         <div className="mt-4 flex justify-end">
           <div className="min-w-[280px] text-sm space-y-1">
             <div className="flex justify-between py-2 border-t-2 border-gray-800 dark:border-white/30 font-bold text-base">
-              <span>Order Total</span>
-              <span>{formatINR(order.total_amount)}</span>
+              <span>My Total</span>
+              <span>{formatINR(order.manager_total)}</span>
             </div>
             <div className="flex justify-between py-1 text-green-600 font-semibold">
               <span>Amount Paid</span>
@@ -291,10 +293,10 @@ const ShopOrderStatement = () => {
             <div className="flex justify-between py-1 text-red-500 font-semibold">
               <span>Remaining</span>
               <span>
-                {order.remaining_amount === 0 ? (
+                {order.manager_remaining === 0 ? (
                   <Tag color="green">FULLY PAID</Tag>
                 ) : (
-                  formatINR(order.remaining_amount)
+                  formatINR(order.manager_remaining)
                 )}
               </span>
             </div>

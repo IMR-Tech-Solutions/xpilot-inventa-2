@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
+from django.db.models import Sum
 from .models import ManagerRequest, ShopOwnerProducts, ShopOwnerOrders, ShopPaymentTransaction, ShopOrderItem
 from .serializers import ManagerRequestListSerializer, ManagerRequestSerializer
 from accounts.premissions import HasModuleAccess
@@ -183,6 +184,7 @@ class ManagerAcceptRequestView(APIView):
             order_item.fulfilled_by_manager = manager_request.manager
             order_item.fulfilled_quantity = offered_quantity
             order_item.actual_price = offered_price
+            order_item.manager_status = 'order_placed'
             order_item.save()
 
             self._check_order_completion(order_item.order)
@@ -588,7 +590,7 @@ class ShopOwnerConfirmDeliveryView(APIView):
 
 
 class UpdateShopOrderPaymentView(APIView):
-    """Manager/Admin records payment received from a shop owner for a completed order."""
+    """Manager records a new payment received from the shop owner for their own items."""
     permission_classes = [IsAuthenticated, HasModuleAccess]
     required_permission = "shop-request"
 
@@ -601,85 +603,95 @@ class UpdateShopOrderPaymentView(APIView):
         ).distinct().first()
 
         if not order:
-            return Response(
-                {'error': 'Order not found or not yet completed.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Order not found or not yet completed.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Manager's own items total
+        manager_items = order.order_items.filter(fulfilled_by_manager=request.user)
+        manager_total = sum(item.fulfilled_quantity * item.actual_price for item in manager_items)
+
+        # Manager's previously recorded total from their own transactions
+        manager_previous_paid = ShopPaymentTransaction.objects.filter(
+            order=order, manager=request.user
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        manager_remaining_before = max(Decimal('0'), Decimal(str(manager_total)) - manager_previous_paid)
 
         try:
-            amount_paid = Decimal(str(request.data.get('amount_paid', order.amount_paid)))
-            payment_method = request.data.get('payment_method', order.payment_method)
+            amount_paid = Decimal(str(request.data.get('amount_paid', 0)))
+            payment_method = request.data.get('payment_method', 'cash')
             online_amount = Decimal(str(request.data.get('online_amount', 0)))
             offline_amount = Decimal(str(request.data.get('offline_amount', 0)))
         except Exception:
             return Response({'error': 'Invalid payment values.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if amount_paid < 0:
-            return Response({'error': 'Amount paid cannot be negative.'}, status=status.HTTP_400_BAD_REQUEST)
+        if amount_paid <= 0:
+            return Response({'error': 'Payment amount must be greater than 0.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if amount_paid > order.total_amount:
-            return Response({'error': 'Amount paid cannot exceed total order amount.'}, status=status.HTTP_400_BAD_REQUEST)
+        if amount_paid > manager_remaining_before:
+            return Response({'error': f'Amount exceeds your remaining balance of ₹{manager_remaining_before}.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if payment_method == 'mix':
             if online_amount + offline_amount != amount_paid:
-                return Response(
-                    {'error': 'Online + offline amounts must equal total amount paid.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({'error': 'Online + offline amounts must equal total amount paid.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             online_amount = Decimal('0')
             offline_amount = Decimal('0')
 
-        remaining = order.total_amount - amount_paid
-        if remaining <= 0:
-            payment_status = 'paid'
-            remaining = Decimal('0')
-        elif amount_paid > 0:
-            payment_status = 'partial'
-        else:
-            payment_status = 'pending'
+        # Create transaction tagged to this manager
+        txn = ShopPaymentTransaction.objects.create(
+            order=order,
+            manager=request.user,
+            amount=amount_paid,
+            payment_method=payment_method,
+            online_amount=online_amount,
+            offline_amount=offline_amount,
+            previous_paid=manager_previous_paid,
+            total_order_amount=Decimal(str(manager_total)),
+            recorded_by=request.user,
+        )
 
-        previous_paid = order.amount_paid
-        previous_online = order.online_amount
-        previous_offline = order.offline_amount
+        # Recompute order-level totals from ALL managers' transactions
+        order_total_paid = ShopPaymentTransaction.objects.filter(order=order).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0')
 
-        order.amount_paid = amount_paid
-        order.remaining_amount = remaining
-        order.payment_status = payment_status
+        order.amount_paid = order_total_paid
+        order.remaining_amount = max(Decimal('0'), order.total_amount - order_total_paid)
         order.payment_method = payment_method
-        order.online_amount = online_amount
-        order.offline_amount = offline_amount
+
+        if order.remaining_amount <= 0:
+            order.payment_status = 'paid'
+        elif order_total_paid > 0:
+            order.payment_status = 'partial'
+        else:
+            order.payment_status = 'pending'
+
         order.save()
 
-        transaction_id = None
-        if amount_paid > previous_paid:
-            delta = amount_paid - previous_paid
-            delta_online = max(online_amount - previous_online, Decimal('0'))
-            delta_offline = max(offline_amount - previous_offline, Decimal('0'))
-            txn = ShopPaymentTransaction.objects.create(
-                order=order,
-                amount=delta,
-                payment_method=payment_method,
-                online_amount=delta_online,
-                offline_amount=delta_offline,
-                previous_paid=previous_paid,
-                total_order_amount=order.total_amount,
-                recorded_by=request.user,
-            )
-            transaction_id = txn.id
+        # Manager-specific remaining after this payment
+        manager_new_paid = manager_previous_paid + amount_paid
+        manager_remaining_after = max(Decimal('0'), Decimal(str(manager_total)) - manager_new_paid)
+
+        if manager_remaining_after <= 0:
+            manager_payment_status = 'paid'
+        elif manager_new_paid > 0:
+            manager_payment_status = 'partial'
+        else:
+            manager_payment_status = 'pending'
 
         return Response({
-            'message': 'Payment updated successfully.',
+            'message': 'Payment recorded successfully.',
             'order_id': order.id,
             'order_number': order.order_number,
-            'total_amount': float(order.total_amount),
-            'amount_paid': float(order.amount_paid),
+            'payment_status': manager_payment_status,
+            'payment_method': payment_method,
+            'amount_paid': float(manager_new_paid),
+            'manager_amount_paid': float(manager_new_paid),
+            'manager_remaining_amount': float(manager_remaining_after),
             'remaining_amount': float(order.remaining_amount),
-            'payment_status': order.payment_status,
-            'payment_method': order.payment_method,
-            'online_amount': float(order.online_amount),
-            'offline_amount': float(order.offline_amount),
-            'transaction_id': transaction_id,
+            'online_amount': float(online_amount),
+            'offline_amount': float(offline_amount),
+            'transaction_id': txn.id,
         })
 
 
@@ -698,8 +710,10 @@ class ShopOrderStatementView(APIView):
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         items = []
+        manager_total = Decimal('0')
         for oi in order.order_items.filter(fulfilled_by_manager=request.user).select_related('product', 'product__unit').order_by('id'):
             total_price = float(oi.actual_price or 0) * int(oi.fulfilled_quantity or 0)
+            manager_total += Decimal(str(total_price))
             items.append({
                 'id': oi.id,
                 'product_name': oi.product.product_name,
@@ -711,8 +725,21 @@ class ShopOrderStatementView(APIView):
                 'total_price': total_price,
             })
 
+        manager_paid_total = ShopPaymentTransaction.objects.filter(
+            order=order, manager=request.user
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        manager_remaining_stmt = max(Decimal('0'), manager_total - manager_paid_total)
+
+        if manager_remaining_stmt <= 0:
+            stmt_payment_status = 'paid'
+        elif manager_paid_total > 0:
+            stmt_payment_status = 'partial'
+        else:
+            stmt_payment_status = 'pending'
+
         transactions = []
-        for txn in order.payment_transactions.select_related('recorded_by').order_by('created_at'):
+        for txn in order.payment_transactions.filter(manager=request.user).select_related('recorded_by').order_by('created_at'):
             total_paid_after = float(txn.previous_paid) + float(txn.amount)
             remaining_after = max(0, float(txn.total_order_amount) - total_paid_after)
             transactions.append({
@@ -739,8 +766,11 @@ class ShopOrderStatementView(APIView):
                 'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}".strip(),
                 'shop_owner_phone': getattr(order.shop_owner, 'mobile_number', None) or 'N/A',
                 'total_amount': float(order.total_amount or 0),
-                'amount_paid': float(order.amount_paid or 0),
-                'remaining_amount': float(order.remaining_amount or 0),
+                'manager_total': float(manager_total),
+                'manager_remaining': float(manager_remaining_stmt),
+                'payment_status': stmt_payment_status,
+                'amount_paid': float(manager_paid_total),
+                'remaining_amount': float(manager_remaining_stmt),
                 'notes': order.notes or '',
             },
             'items': items,
@@ -833,23 +863,45 @@ class ManagerFulfilledOrdersListView(APIView):
             manager_items = order.order_items.filter(
                 fulfilled_by_manager=request.user
             )
-            
-            total_amount = sum(
-                item.fulfilled_quantity * item.actual_price 
+
+            manager_total = sum(
+                item.fulfilled_quantity * item.actual_price
                 for item in manager_items
             )
-            
+
+            first_item = manager_items.first()
+            if order.status == 'completed':
+                manager_order_status = 'completed'
+            else:
+                manager_order_status = (first_item.manager_status or 'order_placed') if first_item else 'order_placed'
+
+            manager_paid = ShopPaymentTransaction.objects.filter(
+                order=order, manager=request.user
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+            manager_remaining = max(Decimal('0'), Decimal(str(manager_total)) - manager_paid)
+
+            if manager_remaining <= 0:
+                manager_payment_status = 'paid'
+            elif manager_paid > 0:
+                manager_payment_status = 'partial'
+            else:
+                manager_payment_status = 'pending'
+
             orders_data.append({
                 'id': order.id,
                 'order_number': order.order_number,
                 'shop_owner_name': f"{order.shop_owner.first_name} {order.shop_owner.last_name}",
-                'order_status': order.status,
+                'order_status': manager_order_status,
                 'items_count': manager_items.count(),
+                'manager_total_amount': float(manager_total),
+                'manager_amount_paid': float(manager_paid),
+                'manager_remaining_amount': float(manager_remaining),
                 'total_amount': float(order.total_amount),
-                'payment_status': order.payment_status,
+                'payment_status': manager_payment_status,
                 'payment_method': order.payment_method,
-                'amount_paid': float(order.amount_paid),
-                'remaining_amount': float(order.remaining_amount),
+                'amount_paid': float(manager_paid),
+                'remaining_amount': float(manager_remaining),
                 'online_amount': float(order.online_amount),
                 'offline_amount': float(order.offline_amount),
                 'created_at': order.created_at,
@@ -908,79 +960,89 @@ class ManagerOrderDetailView(APIView):
 
 class ManagerUpdateOrderStatusView(APIView):
     """
-    Manager can update order status to: packing, delivery_in_progress, cancelled.
-    'completed' is exclusively set by the shop owner via confirm-delivery.
+    Manager updates their own items' status independently (packing, delivery_in_progress, cancelled).
+    Each manager's progress is tracked per-item so managers don't overwrite each other.
     """
     permission_classes = [IsAuthenticated, HasModuleAccess]
     required_permission = "shop-request"
 
     MANAGER_ALLOWED_STATUSES = {'packing', 'delivery_in_progress', 'cancelled'}
-    LOCKED_STATUSES = {'completed', 'cancelled'}
+    ITEM_LOCKED_STATUSES = {'delivery_in_progress', 'cancelled'}
 
     def patch(self, request, order_id):
         new_status = request.data.get('status', '').strip()
 
         if not new_status:
-            return Response(
-                {'error': 'status field is required.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'status field is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if new_status not in self.MANAGER_ALLOWED_STATUSES:
             return Response(
-                {
-                    'error': f'Invalid status. Manager can only set: '
-                             f'{", ".join(sorted(self.MANAGER_ALLOWED_STATUSES))}'
-                },
+                {'error': f'Invalid status. Manager can only set: {", ".join(sorted(self.MANAGER_ALLOWED_STATUSES))}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # FIX 3: was get_object_or_404 with a JOIN — causes MultipleObjectsReturned
-        # when the manager fulfilled multiple items in the same order
         order = ShopOwnerOrders.objects.filter(
             id=order_id,
             order_items__fulfilled_by_manager=request.user
         ).distinct().first()
 
         if not order:
-            return Response(
-                {'error': 'Order not found or you do not have access to it.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Order not found or you do not have access to it.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if order.status in self.LOCKED_STATUSES:
+        if order.status in ('completed', 'cancelled'):
+            return Response({'error': f'Order is already {order.status}. No further changes allowed.'}, status=status.HTTP_403_FORBIDDEN)
+
+        manager_items = order.order_items.filter(fulfilled_by_manager=request.user)
+
+        first_item = manager_items.first()
+        current_manager_status = first_item.manager_status if first_item else None
+
+        if current_manager_status in self.ITEM_LOCKED_STATUSES:
             return Response(
-                {'error': f'Order is already {order.status}. No further status changes are allowed.'},
+                {'error': f'Your items are already marked as {current_manager_status}. No further changes allowed.'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if new_status == 'completed':
-            return Response(
-                {'error': 'completed status can only be set by the shop owner upon delivery confirmation.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        old_status = order.status
-        order.status = new_status
-
-        # If moving to delivery_in_progress, save optional transporter/delivery details
         if new_status == 'delivery_in_progress':
             from transport.models import Transporter
             transporter_id = request.data.get('delivery_transporter')
+            transporter = None
             if transporter_id:
                 try:
-                    order.delivery_transporter = Transporter.objects.get(id=transporter_id)
+                    transporter = Transporter.objects.get(id=transporter_id)
                 except Transporter.DoesNotExist:
                     pass
-            order.delivery_from = request.data.get('delivery_from') or None
-            order.delivery_to = request.data.get('delivery_to') or None
+            delivery_from = request.data.get('delivery_from') or None
+            delivery_to = request.data.get('delivery_to') or None
             cost = request.data.get('delivery_transporter_cost')
-            order.delivery_transporter_cost = cost if cost not in (None, '', 0, '0') else None
+            delivery_cost = cost if cost not in (None, '', 0, '0') else None
 
-        order.save()
+            for item in manager_items:
+                item.manager_status = 'delivery_in_progress'
+                item.item_delivery_transporter = transporter
+                item.item_delivery_from = delivery_from
+                item.item_delivery_to = delivery_to
+                item.item_delivery_transporter_cost = delivery_cost
+                item.save()
+        else:
+            manager_items.update(manager_status=new_status)
+
+        # Recompute order-level status from all managers' item statuses
+        if order.status not in ('completed', 'cancelled'):
+            all_fulfilled = order.order_items.filter(fulfilled_by_manager__isnull=False)
+            all_statuses = list(
+                all_fulfilled.exclude(manager_status__isnull=True)
+                             .values_list('manager_status', flat=True)
+            )
+            if all_statuses:
+                if all(s == 'delivery_in_progress' for s in all_statuses):
+                    order.status = 'delivery_in_progress'
+                elif any(s in ('packing', 'delivery_in_progress') for s in all_statuses):
+                    order.status = 'packing'
+                order.save(update_fields=['status'])
 
         return Response({
-            'message': f'Order status updated from {old_status} to {new_status}.',
+            'message': f'Status updated to {new_status}.',
             'order_number': order.order_number,
-            'order_status': order.status,
+            'order_status': new_status,
         })

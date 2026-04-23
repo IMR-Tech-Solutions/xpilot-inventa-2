@@ -108,6 +108,7 @@ class ShopPaymentTransaction(models.Model):
     offline_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     previous_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_order_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    manager = models.ForeignKey(UserMaster, on_delete=models.SET_NULL, null=True, blank=True, related_name='received_shop_payments')
     recorded_by = models.ForeignKey(UserMaster, on_delete=models.SET_NULL, null=True, blank=True, related_name='shop_payment_transactions')
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -120,6 +121,13 @@ class ShopPaymentTransaction(models.Model):
 
 
 class ShopOrderItem(models.Model):
+    MANAGER_STATUS_CHOICES = [
+        ('order_placed', 'Order Placed'),
+        ('packing', 'Packing'),
+        ('delivery_in_progress', 'Delivery in Progress'),
+        ('cancelled', 'Cancelled'),
+    ]
+
     order = models.ForeignKey(ShopOwnerOrders, on_delete=models.CASCADE, related_name='order_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     requested_quantity = models.PositiveIntegerField()
@@ -127,6 +135,15 @@ class ShopOrderItem(models.Model):
     fulfilled_by_manager = models.ForeignKey(UserMaster, on_delete=models.CASCADE, null=True, blank=True, related_name='fulfilled_shop_orders')
     fulfilled_quantity = models.PositiveIntegerField(null=True, blank=True)
     actual_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # Per-manager status and delivery details — isolates each manager's progress
+    manager_status = models.CharField(max_length=30, choices=MANAGER_STATUS_CHOICES, null=True, blank=True)
+    item_delivery_transporter = models.ForeignKey(
+        'transport.Transporter', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='item_deliveries'
+    )
+    item_delivery_from = models.CharField(max_length=200, null=True, blank=True)
+    item_delivery_to = models.CharField(max_length=200, null=True, blank=True)
+    item_delivery_transporter_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         constraints = [

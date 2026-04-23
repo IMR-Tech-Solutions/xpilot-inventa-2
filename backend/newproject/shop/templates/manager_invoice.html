@@ -177,12 +177,14 @@
       </div>
 
       <!-- Seller Info -->
+      {% if not hide_seller %}
       <div class="info-section">
         <h3>Seller Information</h3>
         <p><strong>Name:</strong> {{ seller_name }}</p>
         <p><strong>Phone:</strong> {{ seller_phone|default:"N/A" }}</p>
         <p><strong>Email:</strong> {{ seller_email|default:"N/A" }}</p>
       </div>
+      {% endif %}
 
       <!-- Customer Info -->
       <div class="info-section">

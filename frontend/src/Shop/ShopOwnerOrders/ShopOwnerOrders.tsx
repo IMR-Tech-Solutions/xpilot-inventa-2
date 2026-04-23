@@ -6,14 +6,16 @@ import ButtonComponentCard from "../../Admin/Components/ButtonComponentCard";
 import {
   getallmyshopordersservice,
   getshopownerorderdetail,
+  getshopownerordersalesinvoiceview,
+  getshopownerordersalesinvoicedownload,
 } from "../../services/shopservices";
 import {
-  // EyeOutlined,
-  // DownloadOutlined,
-  // EditOutlined,
+  EyeOutlined,
+  DownloadOutlined,
   FileTextOutlined,
   FileSearchOutlined,
 } from "@ant-design/icons";
+import { toast } from "react-toastify";
 import { ShopOwnerOrder, ShopOwnerOrderDetailsType } from "../../types/types";
 import { handleError } from "../../utils/handleError";
 import dayjs from "dayjs";
@@ -34,6 +36,9 @@ const ShopOwnerOrders = () => {
   const [selectedShopOrder, setSelectedShopOrder] =
     useState<ShopOwnerOrderDetailsType | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [invoiceLoadingButtons, setInvoiceLoadingButtons] = useState<
+    Record<number, "view" | "download" | null>
+  >({});
 
   const fetchShopownerOrders = async () => {
     setLoading(true);
@@ -91,6 +96,56 @@ const ShopOwnerOrders = () => {
   const checkOrderStatus = async (orderID: number) => {
     const encodedID = btoa(orderID.toString());
     navigate(`/shop/order/${encodedID}`);
+  };
+
+  const handleSalesInvoiceView = async (orderID: number) => {
+    setInvoiceLoadingButtons((prev) => ({ ...prev, [orderID]: "view" }));
+    const toastId = toast.loading("Opening sales invoice...");
+    try {
+      await getshopownerordersalesinvoiceview(orderID);
+      toast.update(toastId, {
+        render: "Sales invoice opened successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error("Error viewing sales invoice:", error);
+      handleError(error);
+      toast.update(toastId, {
+        render: "Failed to open sales invoice",
+        type: "error",
+        isLoading: false,
+        autoClose: 2000,
+      });
+    } finally {
+      setInvoiceLoadingButtons((prev) => ({ ...prev, [orderID]: null }));
+    }
+  };
+
+  const handleSalesInvoiceDownload = async (orderID: number) => {
+    setInvoiceLoadingButtons((prev) => ({ ...prev, [orderID]: "download" }));
+    const toastId = toast.loading("Downloading sales invoice...");
+    try {
+      await getshopownerordersalesinvoicedownload(orderID);
+      toast.update(toastId, {
+        render: "Sales invoice downloaded successfully!",
+        type: "success",
+        isLoading: false,
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error("Error downloading sales invoice:", error);
+      handleError(error);
+      toast.update(toastId, {
+        render: "Failed to download sales invoice",
+        type: "error",
+        isLoading: false,
+        autoClose: 2000,
+      });
+    } finally {
+      setInvoiceLoadingButtons((prev) => ({ ...prev, [orderID]: null }));
+    }
   };
 
   const columns = [
@@ -168,6 +223,26 @@ const ShopOwnerOrders = () => {
             icon={<FileSearchOutlined />}
             onClick={() => checkOrderStatus(record.id)}
           />
+          {record.status === "completed" && (
+            <>
+              <Button
+                id="table-sales-invoice-view-btn"
+                size="small"
+                icon={<EyeOutlined />}
+                loading={invoiceLoadingButtons[record.id] === "view"}
+                onClick={() => handleSalesInvoiceView(record.id)}
+                title="View Sales Invoice"
+              />
+              <Button
+                id="table-sales-invoice-download-btn"
+                size="small"
+                icon={<DownloadOutlined />}
+                loading={invoiceLoadingButtons[record.id] === "download"}
+                onClick={() => handleSalesInvoiceDownload(record.id)}
+                title="Download Sales Invoice"
+              />
+            </>
+          )}
         </Space>
       ),
     },

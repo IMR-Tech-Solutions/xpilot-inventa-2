@@ -9,7 +9,10 @@
       "Bash(python manage.py makemigrations products posorders)",
       "Bash(python manage.py makemigrations inventory --name=\"add_cgst_sgst_percentage_to_stockentry\")",
       "Bash(python manage.py migrate inventory)",
-      "Bash(grep -E \"\\\\.\\(py|txt\\)$\")"
+      "Bash(grep -E \"\\\\.\\(py|txt\\)$\")",
+      "Bash(python manage.py makemigrations shop)",
+      "Bash(\"d:\\\\Rajvardhan\\\\Xpilot-Inventa_2\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" manage.py makemigrations shop)",
+      "Bash(\"d:\\\\Rajvardhan\\\\Xpilot-Inventa_2\\\\backend\\\\venv\\\\Scripts\\\\python.exe\" manage.py migrate shop)"
     ]
   }
 }
