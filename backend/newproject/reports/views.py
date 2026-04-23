@@ -510,7 +510,7 @@ class AdminBrokerReportView(APIView):
 class UserTransporterReportView(APIView):
     """Logged-in user: all transporter usage — both stock purchases and franchise deliveries."""
     permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "view-purchase-report"
+    required_permission = "transportmodule"
 
     def get(self, request):
         from transport.models import Transporter

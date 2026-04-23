@@ -32,6 +32,8 @@ export const all_modules = {
   purchasereport: "purchasereport",
   brokerreport: "brokerreport",
   franchisereport: "franchisereport",
-  transportereport: "transportereport",
+  transportmodule:"transportmodule",
   shopownerpurchasereport: "shopownerpurchasereport",
+  s2spurchase: "shop",
+  s2ssellerincoming: "shop",
 };

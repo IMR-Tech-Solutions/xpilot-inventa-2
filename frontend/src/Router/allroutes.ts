@@ -57,6 +57,12 @@ export const all_routes = {
   shopownerproducthistory: "/shop/product/:productID",
   shopownerpos: "/shop/pos",
 
+  // ── Shop to Shop (S2S) ───────────────────────────────────────────────────
+  s2spurchase: "/shop/s2s/purchase",
+  s2sbuyerorders: "/shop/s2s/orders",
+  s2sbuyerorderdetail: "/shop/s2s/order/:orderID",
+  s2ssellerincoming: "/shop/s2s/incoming",
+
   // ── Shop Order Requests (Manager) ─────────────────────────────────────────
   shoprequests: "/shop/orders/request",
   shoporders: "/shop-orders",

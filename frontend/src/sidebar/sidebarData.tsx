@@ -35,6 +35,21 @@ export const navItems: NavItem[] = [
         path: all_routes.shopownerproducts,
         module: all_modules.shop,
       },
+      {
+        name: "Shop to Shop Purchase",
+        path: all_routes.s2spurchase,
+        module: all_modules.s2spurchase,
+      },
+      {
+        name: "My S2S Orders",
+        path: all_routes.s2sbuyerorders,
+        module: all_modules.s2spurchase,
+      },
+      {
+        name: "Incoming S2S Orders",
+        path: all_routes.s2ssellerincoming,
+        module: all_modules.s2ssellerincoming,
+      },
     ],
   },
   {
@@ -104,7 +119,7 @@ export const management: NavItem[] = [
     icon: <TaskIcon />,
     name: "Add Transporter",
     path: all_routes.addtransporter,
-    module: all_modules.addstock,
+    module: all_modules.transportmodule,
   },
 ];
 
@@ -172,7 +187,7 @@ export const reportItems: NavItem[] = [
       {
         name: "Transporter Report",
         path: all_routes.transporterreport,
-        module: all_modules.transportereport,
+        module: all_modules.transportmodule,
       },
       {
         name: "Franchise Purchase Report",

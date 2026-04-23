@@ -140,6 +140,10 @@ const ShopownerProductHistory = lazy(
   () => import("../Shop/ShopOwnerProducts/ShopownerProductHistory"),
 );
 const ShopOwnerPOS = lazy(() => import("../Shop/ShopOwnerPOS/ShopOwnerPOS"));
+const S2SPurchasePage = lazy(() => import("../Shop/S2SPurchase/S2SPurchasePage"));
+const BuyerS2SOrders = lazy(() => import("../Shop/S2SPurchase/BuyerS2SOrders"));
+const BuyerS2SOrderDetail = lazy(() => import("../Shop/S2SPurchase/BuyerS2SOrderDetail"));
+const SellerS2SOrders = lazy(() => import("../Shop/S2SSeller/SellerS2SOrders"));
 
 export const websiteRoutes = [
   {
@@ -461,14 +465,14 @@ export const websiteRoutes = [
     id: "53",
     name: "Add Transporter",
     link: all_routes.addtransporter,
-    module: all_modules.addstock,
+    module: all_modules.transportmodule,
     element: <AddTransporter />,
   },
   {
     id: "54",
     name: "All Transporters",
     link: all_routes.alltransporters,
-    module: all_modules.addstock,
+    module: all_modules.transportmodule,
     element: <AllTrasnporters />,
   },
   {
@@ -503,7 +507,7 @@ export const websiteRoutes = [
     id: "59",
     name: "Transporter Report",
     link: all_routes.transporterreport,
-    module: all_modules.transportereport,
+    module: all_modules.transportmodule,
     element: <TransporterReport />,
   },
   {
@@ -512,6 +516,34 @@ export const websiteRoutes = [
     link: all_routes.shopownerpurchasereport,
     module: all_modules.shopownerpurchasereport,
     element: <ShopOwnerPurchaseReport />,
+  },
+  {
+    id: "61",
+    name: "S2S Purchase",
+    link: all_routes.s2spurchase,
+    module: all_modules.s2spurchase,
+    element: <S2SPurchasePage />,
+  },
+  {
+    id: "62",
+    name: "My S2S Orders",
+    link: all_routes.s2sbuyerorders,
+    module: all_modules.s2spurchase,
+    element: <BuyerS2SOrders />,
+  },
+  {
+    id: "63",
+    name: "S2S Order Detail",
+    link: all_routes.s2sbuyerorderdetail,
+    module: all_modules.s2spurchase,
+    element: <BuyerS2SOrderDetail />,
+  },
+  {
+    id: "64",
+    name: "Incoming S2S Orders",
+    link: all_routes.s2ssellerincoming,
+    module: all_modules.s2ssellerincoming,
+    element: <SellerS2SOrders />,
   },
 ];
 

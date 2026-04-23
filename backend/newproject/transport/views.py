@@ -12,7 +12,7 @@ from accounts.premissions import IsAdminRole, IsOwnerOrAdmin, HasModuleAccess
 # Add Transporter (POST)
 class AddTransporterView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "add-stock-batch"
+    required_permission = "transporter-module"
 
     def post(self, request):
         serializer = TransporterSerializer(data=request.data, context={'request': request})
@@ -49,7 +49,7 @@ class AllUserTransportersView(APIView):
 # My Transporters (GET) -- User
 class UserTransportersView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "add-stock-batch"
+    required_permission = "transporter-module"
 
     def get(self, request):
         transporters = Transporter.objects.filter(user=request.user).order_by('id')
@@ -61,7 +61,7 @@ class UserTransportersView(APIView):
 # My Transporters Active (GET) -- User
 class UserActiveTransportersView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "add-stock-batch"
+    required_permission = "transporter-module"
 
     def get(self, request):
         transporters = Transporter.objects.filter(user=request.user,is_active=True).order_by('id')
@@ -74,7 +74,7 @@ class UserActiveTransportersView(APIView):
 # Update Transporter (PUT)
 class UpdateTransporterView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess, IsOwnerOrAdmin]
-    required_permission = "add-stock-batch"
+    required_permission = "transporter-module"
 
     def put(self, request, pk):
         transporter = get_object_or_404(Transporter, pk=pk)
@@ -100,7 +100,7 @@ class TransporterDetailView(APIView):
 # Delete Transporter (DELETE)
 class DeleteTransporterView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess, IsOwnerOrAdmin]
-    required_permission = "add-stock-batch"
+    required_permission = "transporter-module"
 
     def delete(self, request, pk):
         transporter = get_object_or_404(Transporter, pk=pk)

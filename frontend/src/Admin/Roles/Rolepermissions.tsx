@@ -65,6 +65,7 @@ const Rolepermissions = () => {
       "POS & Orders": [],
       Shop: [],
       Reports: [],
+      Transporter: [], 
       Other: [],
     };
 
@@ -87,6 +88,8 @@ const Rolepermissions = () => {
         groups["Reports"].push(permission);
       } else if (method.includes("shop")) {
         groups["Shop"].push(permission);
+      } else if (method.includes("transporter")) {  
+        groups["Transporter"].push(permission);
       } else {
         groups["Other"].push(permission);
       }

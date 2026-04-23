@@ -64,12 +64,18 @@ AVAILABLE_SERVICES = [
         "method": "view-vendors",
         "module": "vendors",
     },
-        {
+    {
         "name": "View Vendors Invoices",
         "method": "view-vendor-invoices",
         "module": "purchaseinvoice",
     },
 
+    #---- Transporter module
+    {
+        "name": "All Transporter Permissions",
+        "method": "transporter-module",
+        "module": "transportmodule",
+    },
     # --- Stock Batches ---
     {
         "name": "View Stock Batches",
@@ -183,11 +189,6 @@ AVAILABLE_SERVICES = [
         "name": "Franchise Report",
         "method": "view-franchise-report",
         "module": "franchisereport",
-    },
-    {
-        "name": "Transporter Report",
-        "method": "view-purchase-report",
-        "module": "transportereport",
     },
 
     # --- Shop Owner ---

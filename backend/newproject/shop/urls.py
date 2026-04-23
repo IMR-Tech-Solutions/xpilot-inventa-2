@@ -12,6 +12,14 @@ from .views import (
     ManagerOrderDetailView, ManagerUpdateOrderStatusView, UpdateShopOrderPaymentView,
     ShopOrderStatementView,
 )
+from .s2s_views import (
+    S2SShopListView, S2SShopProductsView, PlaceS2SOrderView,
+    BuyerS2SOrdersListView, BuyerS2SOrderDetailView,
+    ConfirmS2SDeliveryView, CancelS2SOrderView,
+    SellerS2SIncomingOrdersView, SellerS2SOrderDetailView,
+    SellerAcceptS2SItemView, SellerRejectS2SItemView,
+    SellerUpdateS2SOrderStatusView, RecordS2SPaymentView,
+)
 from .invoice_views import (
     ManagerOrderInvoicePDFView, ManagerOrderInvoicePDFDownloadView,
     ShopOwnerOrderItemInvoicePDFDownloadView, ShopOwnerOrderItemInvoicePDFView,
@@ -54,4 +62,19 @@ urlpatterns = [
     path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/view/', ShopPaymentReceiptView.as_view(), name='shop-payment-receipt-view'),
     path('manager/orders/<int:order_id>/receipt/<int:transaction_id>/pdf/', ShopPaymentReceiptDownloadView.as_view(), name='shop-payment-receipt-download'),
     path('manager/orders/<int:order_id>/statement/', ShopOrderStatementView.as_view(), name='shop-order-statement'),
+
+    # ── Shop to Shop (S2S) ────────────────────────────────────────────────────
+    path('s2s/shops/', S2SShopListView.as_view(), name='s2s-shop-list'),
+    path('s2s/shops/<int:seller_id>/products/', S2SShopProductsView.as_view(), name='s2s-shop-products'),
+    path('s2s/orders/place/', PlaceS2SOrderView.as_view(), name='s2s-place-order'),
+    path('s2s/orders/', BuyerS2SOrdersListView.as_view(), name='s2s-buyer-orders'),
+    path('s2s/orders/<int:order_id>/', BuyerS2SOrderDetailView.as_view(), name='s2s-buyer-order-detail'),
+    path('s2s/orders/<int:order_id>/confirm-delivery/', ConfirmS2SDeliveryView.as_view(), name='s2s-confirm-delivery'),
+    path('s2s/orders/<int:order_id>/cancel/', CancelS2SOrderView.as_view(), name='s2s-cancel-order'),
+    path('s2s/seller/orders/', SellerS2SIncomingOrdersView.as_view(), name='s2s-seller-orders'),
+    path('s2s/seller/orders/<int:order_id>/', SellerS2SOrderDetailView.as_view(), name='s2s-seller-order-detail'),
+    path('s2s/seller/orders/<int:order_id>/items/<int:item_id>/accept/', SellerAcceptS2SItemView.as_view(), name='s2s-accept-item'),
+    path('s2s/seller/orders/<int:order_id>/items/<int:item_id>/reject/', SellerRejectS2SItemView.as_view(), name='s2s-reject-item'),
+    path('s2s/seller/orders/<int:order_id>/update-status/', SellerUpdateS2SOrderStatusView.as_view(), name='s2s-update-status'),
+    path('s2s/seller/orders/<int:order_id>/record-payment/', RecordS2SPaymentView.as_view(), name='s2s-record-payment'),
 ]
