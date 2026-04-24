@@ -5,7 +5,7 @@ import {
 } from "antd";
 import {
   EyeOutlined, CheckOutlined, CloseOutlined,
-  TruckOutlined, DollarOutlined, PlusOutlined,
+  DollarOutlined, PlusOutlined, DownloadOutlined,
 } from "@ant-design/icons";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
@@ -17,6 +17,8 @@ import {
   rejectS2SItemService,
   updateS2SOrderStatusService,
   recordS2SPaymentService,
+  viewS2SInvoiceService,
+  downloadS2SInvoiceService,
 } from "../../services/s2sservices";
 import { getMyActiveTransporterService } from "../../services/transporterservices";
 import { handleError } from "../../utils/handleError";
@@ -104,6 +106,7 @@ const SellerS2SOrders = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<S2SSellerOrder | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState<Record<number, "view" | "download" | null>>({});
   const [paymentForm] = Form.useForm();
   const watchedMethod = Form.useWatch("payment_method", paymentForm);
   const watchedAmountPaid = Form.useWatch("amount_paid", paymentForm);
@@ -335,6 +338,12 @@ const SellerS2SOrders = () => {
       render: (_: any, record: S2SSellerOrder) => (
         <Space size="small" wrap>
           <Button size="small" icon={<EyeOutlined />} onClick={() => openDetail(record)} title="View & Accept/Reject Items" />
+          {record.status === "completed" && (
+            <>
+              <Button size="small" icon={<EyeOutlined />} loading={invoiceLoading[record.id] === "view"} onClick={async () => { setInvoiceLoading((p) => ({ ...p, [record.id]: "view" })); try { await viewS2SInvoiceService(record.id); } catch (err) { handleError(err); } finally { setInvoiceLoading((p) => ({ ...p, [record.id]: null })); } }} title="View Invoice" />
+              <Button size="small" icon={<DownloadOutlined />} loading={invoiceLoading[record.id] === "download"} onClick={async () => { setInvoiceLoading((p) => ({ ...p, [record.id]: "download" })); try { await downloadS2SInvoiceService(record.id); } catch (err) { handleError(err); } finally { setInvoiceLoading((p) => ({ ...p, [record.id]: null })); } }} title="Download Invoice" />
+            </>
+          )}
           {record.status === "completed" && record.payment_status !== "paid" && (
             <Button size="small" type="primary" icon={<DollarOutlined />} onClick={() => openPaymentModal(record)}>Payment</Button>
           )}

@@ -62,6 +62,7 @@ export const all_routes = {
   s2sbuyerorders: "/shop/s2s/orders",
   s2sbuyerorderdetail: "/shop/s2s/order/:orderID",
   s2ssellerincoming: "/shop/s2s/incoming",
+  s2sreport: "/shop/s2s/report",
 
   // ── Shop Order Requests (Manager) ─────────────────────────────────────────
   shoprequests: "/shop/orders/request",

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from accounts.premissions import HasModuleAccess, IsOwnerOrAdmin
-from .models import ShopOwnerOrders, ShopOrderItem, ShopPaymentTransaction
+from .models import ShopOwnerOrders, ShopOrderItem, ShopPaymentTransaction, S2SOrder
 from django.utils.dateparse import parse_date
 from accounts.models import UserMaster
 from django.http import Http404
@@ -433,5 +433,111 @@ class ShopPaymentReceiptDownloadView(ShopPaymentReceiptBaseView):
         pdf_result, name = self.generate_pdf(request, order_id, transaction_id)
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename=receipt_{name}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+# ── S2S Invoice ───────────────────────────────────────────────────────────────
+
+class S2SInvoicePDFBaseView(APIView):
+    """Generate sales invoice for a completed S2S order (accessible by buyer or seller)."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-access"
+
+    def generate_pdf(self, request, order_id):
+        try:
+            order = S2SOrder.objects.select_related(
+                'buyer', 'seller', 'delivery_transporter'
+            ).get(id=order_id)
+        except S2SOrder.DoesNotExist:
+            raise Http404("Order not found")
+
+        if request.user.id not in (order.buyer_id, order.seller_id):
+            raise Http404("Access denied")
+
+        if order.status == 'cancelled':
+            raise Http404("Invoice not available for cancelled orders")
+
+        accepted_items = order.order_items.filter(
+            item_status='accepted'
+        ).select_related('seller_product__product', 'seller_product__product__unit')
+
+        if not accepted_items.exists():
+            return None, None
+
+        items = []
+        total_amount = 0
+        for item in accepted_items:
+            item_total = (item.fulfilled_quantity or 0) * (item.actual_price or 0)
+            total_amount += item_total
+            items.append({
+                "product_name": item.seller_product.product.product_name,
+                "sku": item.seller_product.product.sku_code or 'N/A',
+                "unit": item.seller_product.product.unit.unitName if item.seller_product.product.unit else 'N/A',
+                "quantity": item.fulfilled_quantity,
+                "unit_price": float(item.actual_price or 0),
+                "total_price": float(item_total),
+            })
+
+        t = order.delivery_transporter
+        if t:
+            transporter_ctx = {
+                "has_transporter": True,
+                "transporter_name": t.transporter_name or '',
+                "transporter_contact": t.contact_number or '',
+                "license_number": t.license_number or '',
+                "rc_number": t.rc_number or '',
+                "vehicle_number": t.vehicle_number or '',
+                "vehicle_type": t.vehicle_type or '',
+                "delivery_from": order.delivery_from or '',
+                "delivery_to": order.delivery_to or '',
+                "delivery_transporter_cost": float(order.delivery_transporter_cost) if order.delivery_transporter_cost else None,
+            }
+        else:
+            transporter_ctx = {"has_transporter": False}
+
+        context = {
+            "invoice_title": "SALES INVOICE",
+            "order_number": order.order_number,
+            "date": format_date(order.created_at),
+            "year": order.created_at.year if order.created_at else '',
+            "seller_name": f"{order.seller.first_name} {order.seller.last_name}".strip(),
+            "seller_phone": order.seller.mobile_number or 'N/A',
+            "seller_email": order.seller.email or 'N/A',
+            "customer_name": f"{order.buyer.first_name} {order.buyer.last_name}".strip(),
+            "customer_phone": order.buyer.mobile_number or 'N/A',
+            "customer_email": order.buyer.email or 'N/A',
+            "subtotal": float(total_amount),
+            "total_amount": float(total_amount),
+            "items": items,
+            "transporter": transporter_ctx,
+        }
+
+        html_string = render_to_string("manager_invoice.html", context)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+        pdf_result = html.write_pdf()
+        return pdf_result, order.order_number
+
+
+class S2SInvoicePDFView(S2SInvoicePDFBaseView):
+    """View S2S invoice inline in browser"""
+    def get(self, request, order_id):
+        pdf_result, order_number = self.generate_pdf(request, order_id)
+        if not pdf_result:
+            return HttpResponse("No accepted items found.", status=404)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename=s2s_invoice_{order_number}.pdf'
+        response.write(pdf_result)
+        return response
+
+
+class S2SInvoicePDFDownloadView(S2SInvoicePDFBaseView):
+    """Download S2S invoice"""
+    def get(self, request, order_id):
+        pdf_result, order_number = self.generate_pdf(request, order_id)
+        if not pdf_result:
+            return HttpResponse("No accepted items found.", status=404)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename=s2s_invoice_{order_number}.pdf'
         response.write(pdf_result)
         return response

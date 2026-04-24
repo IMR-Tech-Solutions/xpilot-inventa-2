@@ -26,6 +26,7 @@ from .invoice_views import (
     ManagerOrderDeliveryChallanPDFDownloadView,
     ShopPaymentReceiptView, ShopPaymentReceiptDownloadView,
     ShopOwnerOrderSalesInvoicePDFView, ShopOwnerOrderSalesInvoicePDFDownloadView,
+    S2SInvoicePDFView, S2SInvoicePDFDownloadView,
 )
 
 urlpatterns = [
@@ -77,4 +78,6 @@ urlpatterns = [
     path('s2s/seller/orders/<int:order_id>/items/<int:item_id>/reject/', SellerRejectS2SItemView.as_view(), name='s2s-reject-item'),
     path('s2s/seller/orders/<int:order_id>/update-status/', SellerUpdateS2SOrderStatusView.as_view(), name='s2s-update-status'),
     path('s2s/seller/orders/<int:order_id>/record-payment/', RecordS2SPaymentView.as_view(), name='s2s-record-payment'),
+    path('s2s/orders/<int:order_id>/invoice/view/', S2SInvoicePDFView.as_view(), name='s2s-invoice-view'),
+    path('s2s/orders/<int:order_id>/invoice/pdf/', S2SInvoicePDFDownloadView.as_view(), name='s2s-invoice-download'),
 ]

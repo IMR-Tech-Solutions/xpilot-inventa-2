@@ -141,6 +141,7 @@ const ShopownerProductHistory = lazy(
 );
 const ShopOwnerPOS = lazy(() => import("../Shop/ShopOwnerPOS/ShopOwnerPOS"));
 const S2SPurchasePage = lazy(() => import("../Shop/S2SPurchase/S2SPurchasePage"));
+const S2SReport = lazy(() => import("../pages/Reports/s2sreport/S2SReport"));
 const BuyerS2SOrders = lazy(() => import("../Shop/S2SPurchase/BuyerS2SOrders"));
 const BuyerS2SOrderDetail = lazy(() => import("../Shop/S2SPurchase/BuyerS2SOrderDetail"));
 const SellerS2SOrders = lazy(() => import("../Shop/S2SSeller/SellerS2SOrders"));
@@ -544,6 +545,13 @@ export const websiteRoutes = [
     link: all_routes.s2ssellerincoming,
     module: all_modules.s2ssellerincoming,
     element: <SellerS2SOrders />,
+  },
+  {
+    id: "65",
+    name: "S2S Report",
+    link: all_routes.s2sreport,
+    module: all_modules.s2sreport,
+    element: <S2SReport />,
   },
 ];
 

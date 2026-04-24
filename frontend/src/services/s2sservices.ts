@@ -93,6 +93,30 @@ export const updateS2SOrderStatusService = async (
   return response.data;
 };
 
+// ── Invoice: view S2S invoice in browser ─────────────────────────────────────
+export const viewS2SInvoiceService = async (orderId: number) => {
+  const response = await api.get(`s2s/orders/${orderId}/invoice/view/`, { responseType: "blob" });
+  const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+  const pdfUrl = window.URL.createObjectURL(pdfBlob);
+  window.open(pdfUrl, "_blank");
+  return pdfUrl;
+};
+
+// ── Invoice: download S2S invoice ────────────────────────────────────────────
+export const downloadS2SInvoiceService = async (orderId: number) => {
+  const response = await api.get(`s2s/orders/${orderId}/invoice/pdf/`, { responseType: "blob" });
+  const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+  const downloadUrl = window.URL.createObjectURL(pdfBlob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = `s2s_invoice_${orderId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(downloadUrl);
+  return response.data;
+};
+
 // ── Seller: record payment ────────────────────────────────────────────────────
 export const recordS2SPaymentService = async (
   orderId: number,

@@ -78,7 +78,7 @@ const LOCKED_STATUSES = new Set([
 ]);
 
 // Initial statuses where manager hasn't acted yet — show dropdown
-const UNLOCKED_STATUSES = new Set(["order_placed", "packing"]);
+// const UNLOCKED_STATUSES = new Set(["order_placed", "packing"]);
 
 const formatINR = (v: number) =>
   `₹${Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;

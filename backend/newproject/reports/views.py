@@ -11,7 +11,7 @@ from customers.models import Customer
 from inventory.models import StockEntry
 from vendors.models import Vendor
 from broker.models import Broker
-from shop.models import ShopOrderItem, ShopOwnerOrders
+from shop.models import ShopOrderItem, ShopOwnerOrders, S2SOrder, S2SOrderItem
 
 
 class UserSalesReportView(APIView):
@@ -1083,4 +1083,106 @@ class ShopOwnerPurchaseReportView(APIView):
             },
             'orders': orders,
             'managers': managers,
+        })
+
+
+class S2SReportView(APIView):
+    """Shop owner: S2S orders as buyer and as seller — full report with summary."""
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "shop-access"
+
+    def get(self, request):
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        role = request.query_params.get('role', 'buyer')  # 'buyer' or 'seller'
+
+        if role == 'seller':
+            orders_qs = S2SOrder.objects.filter(seller=request.user)
+        else:
+            orders_qs = S2SOrder.objects.filter(buyer=request.user)
+
+        if start_date:
+            orders_qs = orders_qs.filter(created_at__date__gte=start_date)
+        if end_date:
+            orders_qs = orders_qs.filter(created_at__date__lte=end_date)
+
+        orders_qs = orders_qs.select_related('buyer', 'seller').prefetch_related(
+            'order_items__seller_product__product'
+        ).order_by('-created_at')
+
+        total_qty = 0
+        total_value = 0.0
+        total_paid = 0.0
+        total_remaining = 0.0
+        total_items = 0
+        status_counts = {'completed': 0, 'pending': 0, 'cancelled': 0}
+        orders_data = []
+
+        for order in orders_qs:
+            accepted_items = [i for i in order.order_items.all() if i.item_status == 'accepted']
+            if not accepted_items and order.status not in ('order_placed', 'partially_accepted'):
+                accepted_items = list(order.order_items.all())
+
+            order_qty = sum(i.fulfilled_quantity or 0 for i in accepted_items)
+            order_value = sum(
+                float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                for i in accepted_items
+            )
+            total_qty += order_qty
+            total_value += order_value
+            total_paid += float(order.amount_paid)
+            total_remaining += float(order.remaining_amount)
+            total_items += len(accepted_items)
+
+            if order.status == 'completed':
+                status_counts['completed'] += 1
+            elif order.status == 'cancelled':
+                status_counts['cancelled'] += 1
+            else:
+                status_counts['pending'] += 1
+
+            items = []
+            for i in order.order_items.all():
+                line_total = float(i.actual_price or 0) * (i.fulfilled_quantity or 0)
+                items.append({
+                    'id': i.id,
+                    'product_name': i.seller_product.product.product_name,
+                    'product_sku': i.seller_product.product.sku_code or 'N/A',
+                    'requested_quantity': i.requested_quantity,
+                    'fulfilled_quantity': i.fulfilled_quantity,
+                    'actual_price': float(i.actual_price or 0),
+                    'line_total': line_total,
+                    'item_status': i.item_status,
+                })
+
+            counterpart = order.buyer if role == 'seller' else order.seller
+            orders_data.append({
+                'order_id': order.id,
+                'order_number': order.order_number,
+                'counterpart_name': f"{counterpart.first_name} {counterpart.last_name}".strip(),
+                'counterpart_business': counterpart.business_name or '',
+                'order_status': order.status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method,
+                'amount_paid': float(order.amount_paid),
+                'remaining_amount': float(order.remaining_amount),
+                'total_qty': order_qty,
+                'total_value': order_value,
+                'order_date': order.created_at,
+                'items': items,
+            })
+
+        return Response({
+            'summary': {
+                'total_orders': len(orders_data),
+                'total_items': total_items,
+                'total_qty': total_qty,
+                'total_value': round(total_value, 2),
+                'total_paid': round(total_paid, 2),
+                'total_remaining': round(total_remaining, 2),
+                'completed': status_counts['completed'],
+                'pending': status_counts['pending'],
+                'cancelled': status_counts['cancelled'],
+            },
+            'orders': orders_data,
         })

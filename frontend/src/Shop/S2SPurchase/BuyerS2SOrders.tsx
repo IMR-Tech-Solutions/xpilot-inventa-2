@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Table, Tag, Button, Space } from "antd";
-import { FileSearchOutlined, StopOutlined } from "@ant-design/icons";
+import { FileSearchOutlined, StopOutlined, EyeOutlined, DownloadOutlined } from "@ant-design/icons";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ButtonComponentCard from "../../Admin/Components/ButtonComponentCard";
-import { getBuyerS2SOrdersService, cancelS2SOrderService } from "../../services/s2sservices";
+import { getBuyerS2SOrdersService, cancelS2SOrderService, viewS2SInvoiceService, downloadS2SInvoiceService } from "../../services/s2sservices";
 import { handleError } from "../../utils/handleError";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
@@ -41,6 +41,7 @@ const BuyerS2SOrders = () => {
   const [orders, setOrders] = useState<S2SOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState<number | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState<Record<number, "view" | "download" | null>>({});
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -57,6 +58,18 @@ const BuyerS2SOrders = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  const handleInvoiceView = async (orderId: number) => {
+    setInvoiceLoading((p) => ({ ...p, [orderId]: "view" }));
+    try { await viewS2SInvoiceService(orderId); } catch (err) { handleError(err); }
+    finally { setInvoiceLoading((p) => ({ ...p, [orderId]: null })); }
+  };
+
+  const handleInvoiceDownload = async (orderId: number) => {
+    setInvoiceLoading((p) => ({ ...p, [orderId]: "download" }));
+    try { await downloadS2SInvoiceService(orderId); } catch (err) { handleError(err); }
+    finally { setInvoiceLoading((p) => ({ ...p, [orderId]: null })); }
+  };
 
   const handleCancel = async (orderId: number) => {
     setCancelling(orderId);
@@ -125,6 +138,12 @@ const BuyerS2SOrders = () => {
             onClick={() => navigate(`${all_routes.s2sbuyerorderdetail.replace(":orderID", String(record.id))}`)  }
             title="View Order"
           />
+          {record.status === "completed" && (
+            <>
+              <Button size="small" icon={<EyeOutlined />} loading={invoiceLoading[record.id] === "view"} onClick={() => handleInvoiceView(record.id)} title="View Invoice" />
+              <Button size="small" icon={<DownloadOutlined />} loading={invoiceLoading[record.id] === "download"} onClick={() => handleInvoiceDownload(record.id)} title="Download Invoice" />
+            </>
+          )}
           {record.status === "order_placed" && (
             <Button
               size="small"

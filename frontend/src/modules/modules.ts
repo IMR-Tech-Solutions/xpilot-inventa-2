@@ -36,4 +36,5 @@ export const all_modules = {
   shopownerpurchasereport: "shopownerpurchasereport",
   s2spurchase: "shop",
   s2ssellerincoming: "shop",
+  s2sreport: "shop",
 };

@@ -194,6 +194,11 @@ export const reportItems: NavItem[] = [
         path: all_routes.shopownerpurchasereport,
         module: all_modules.shopownerpurchasereport,
       },
+      {
+        name: "S2S Report",
+        path: all_routes.s2sreport,
+        module: all_modules.s2sreport,
+      },
     ],
   },
 ];
